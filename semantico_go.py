@@ -354,6 +354,57 @@ def p_bloque(p):
 # FIN CONTRIBUCIÓN: Jair Palaguachi - REGLA 2
 # ============================================================================
 
+# ============================================================================
+# CONTRIBUCIÓN: Jair Palaguachi (JairPalaguachi)
+# ASIGNACIÓN DE TIPO - REGLA 3: Verificación de tipos en asignación
+# El tipo del valor asignado debe coincidir con el tipo de la variable
+# Go no permite conversiones implícitas entre tipos numéricos
+# ============================================================================
+
+def p_asignacion(p):
+    '''asignacion : ID ASSIGN expresion
+                  | ID PLUS_ASSIGN expresion
+                  | ID MINUS_ASSIGN expresion
+                  | ID TIMES_ASSIGN expresion
+                  | ID DIVIDE_ASSIGN expresion
+                  | ID LBRACKET expresion RBRACKET ASSIGN expresion
+                  | TIMES ID ASSIGN expresion'''
+    
+    if len(p) == 4 and p[2] == '=':  # ID ASSIGN expresion
+        var_name = p[1]
+        line = p.lineno(1)
+        
+        # JAIR - REGLA 1: Verificar que la variable esté declarada
+        symbol = symbol_table.lookup(var_name)
+        if not symbol:
+            add_error(f"Variable '{var_name}' utilizada sin declaración previa", line)
+        else:
+            # JAIR - REGLA 3: Verificar tipos
+            expr_type = p[3].get('type') if isinstance(p[3], dict) else 'unknown'
+            if expr_type != 'unknown' and symbol.symbol_type != expr_type:
+                if not (symbol.symbol_type in NUMERIC_TYPES and expr_type in NUMERIC_TYPES):
+                    add_error(f"Incompatibilidad de tipos: no se puede asignar '{expr_type}' a '{symbol.symbol_type}'", line)
+            
+            # JAIR - REGLA 4: Verificar si es constante
+            if symbol.is_const:
+                add_error(f"No se puede asignar valor a constante '{var_name}'", line)
+    
+    elif len(p) == 4:  # Operadores compuestos
+        var_name = p[1]
+        line = p.lineno(1)
+        
+        # JAIR - REGLA 1: Verificar declaración
+        symbol = symbol_table.lookup(var_name)
+        if not symbol:
+            add_error(f"Variable '{var_name}' utilizada sin declaración previa", line)
+        else:
+            # JAIR - REGLA 4: Verificar constante
+            if symbol.is_const:
+                add_error(f"No se puede modificar constante '{var_name}'", line)
+
+# ============================================================================
+# FIN CONTRIBUCIÓN: Jair Palaguachi - REGLA 3
+# ============================================================================
 
 # DECLARACIONES MÚLTIPLES Y ASIGNACIONES MÚLTIPLES
 def p_declaracion_var_multiple(p):
