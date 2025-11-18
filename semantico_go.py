@@ -736,7 +736,7 @@ def p_for_statement(p):
         inside_loop -= 1
 
 # ============================================================================
-# FIN CONTRIBUCIÓN: Jair Palaguachi (JairPalaguachi) - REGLA 3
+# FIN CONTRIBUCIÓN: Javier Gutiérrez (SKEIILATT)- REGLA 3
 # ============================================================================
 
 
