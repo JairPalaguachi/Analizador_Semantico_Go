@@ -446,7 +446,6 @@ def p_declaracion_const(p):
 # FIN CONTRIBUCIÓN: Jair Palaguachi - REGLA 4
 # ============================================================================
 
-
 # DECLARACIONES MÚLTIPLES Y ASIGNACIONES MÚLTIPLES
 def p_declaracion_var_multiple(p):
     '''declaracion_var_multiple : VAR lista_ids tipo
@@ -739,7 +738,174 @@ def p_for_statement(p):
 # FIN CONTRIBUCIÓN: Javier Gutiérrez (SKEIILATT)- REGLA 3
 # ============================================================================
 
+# ============================================================================
+# CONTRIBUCIÓN: Javier Gutiérrez (SKEIILATT)
+# ESTRUCTURAS DE CONTROL - REGLA 4: Uso correcto de break y continue
+# Break y continue solo pueden usarse dentro de bucles
+# ============================================================================
 
+def p_sentencia(p):
+    '''sentencia : declaracion_var
+                 | bloque_var
+                 | declaracion_const
+                 | asignacion
+                 | asignacion_multiple
+                 | declaracion_var_multiple
+                 | if_statement
+                 | for_statement
+                 | switch_statement
+                 | return_statement
+                 | expresion
+                 | ID INCREMENT
+                 | ID DECREMENT
+                 | BREAK
+                 | CONTINUE
+                 | empty'''
+    
+    # Validar uso de variables en incremento/decremento
+    if len(p) == 3 and p[2] in ('++', '--'):
+        var_name = p[1]
+        line = p.lineno(1)
+        symbol = symbol_table.lookup(var_name)
+        if not symbol:
+            add_error(f"Variable '{var_name}' utilizada sin declaración previa", line)
+    
+    # LEONARDO - REGLA 4: Verificar break y continue
+    if len(p) == 2 and p[1] in ('break', 'continue'):
+        if inside_loop == 0:
+            add_error(f"'{p[1]}' solo puede usarse dentro de un bucle (for/switch)", p.lineno(1))
+# ============================================================================
+# FIN CONTRIBUCIÓN: Javier Gutiérrez (SKEIILATT) - REGLA 4
+# ============================================================================
+
+
+
+def p_inicializacion(p):
+    '''inicializacion : declaracion_var
+                      | asignacion
+                      | empty'''
+    pass
+
+def p_incremento(p):
+    '''incremento : asignacion
+                  | ID INCREMENT
+                  | ID DECREMENT
+                  | empty'''
+    pass
+
+def p_switch_statement(p):
+    '''switch_statement : SWITCH expresion LBRACE casos RBRACE
+                        | SWITCH LBRACE casos RBRACE
+                        | SWITCH declaracion_var_corta SEMICOLON expresion LBRACE casos RBRACE'''
+    global inside_loop
+    
+    # Si hay declaración var corta, ya se insertó en la tabla de símbolos
+    inside_loop += 1
+    # Procesar switch (permite break)
+    inside_loop -= 1
+
+def p_casos(p):
+    '''casos : casos caso
+             | caso'''
+    pass
+
+def p_caso(p):
+    '''caso : CASE lista_expresiones COLON sentencias
+            | DEFAULT COLON sentencias'''
+    pass
+
+def p_impresion(p):
+    '''impresion : ID DOT ID LPAREN lista_expresiones RPAREN
+                 | ID DOT ID LPAREN RPAREN'''
+    pass
+
+# ============================================================================
+# CONTRIBUCIÓN: Javier Gutiérrez (SKEIILATT)
+# OPERACIONES PERMITIDAS - REGLA 1: Homogeneidad de tipos en operaciones aritméticas
+# Los operandos de operaciones aritméticas deben ser del mismo tipo
+# ============================================================================
+
+def p_expresion_binaria(p):
+    '''expresion : expresion PLUS expresion
+                 | expresion MINUS expresion
+                 | expresion TIMES expresion
+                 | expresion DIVIDE expresion
+                 | expresion MOD expresion
+                 | expresion AND expresion
+                 | expresion OR expresion
+                 | expresion EQ expresion
+                 | expresion NE expresion
+                 | expresion LT expresion
+                 | expresion LE expresion
+                 | expresion GT expresion
+                 | expresion GE expresion
+                 | expresion BITAND expresion
+                 | expresion BITOR expresion
+                 | expresion BITXOR expresion
+                 | expresion LSHIFT expresion
+                 | expresion RSHIFT expresion
+                 | expresion AND_NOT expresion'''
+    
+    left_type = p[1].get('type') if isinstance(p[1], dict) else 'unknown'
+    right_type = p[3].get('type') if isinstance(p[3], dict) else 'unknown'
+    operator = p[2]
+    
+    # JAVIER - REGLA 1: Homogeneidad de tipos en operaciones aritméticas
+    if operator in ['+', '-', '*', '/', '%']:
+        # Para +, verificar concatenación (REGLA 2 de Javier)
+        if operator == '+' and (left_type == 'string' or right_type == 'string'):
+            # JAVIER - REGLA 2: Concatenación solo con strings
+            if left_type != 'string' or right_type != 'string':
+                add_error(f"No se puede concatenar '{left_type}' con '{right_type}'. Ambos deben ser string", p.lineno(2))
+            p[0] = {'type': 'string'}
+        else:
+            # Operaciones aritméticas
+            if left_type != 'unknown' and right_type != 'unknown':
+                if left_type not in NUMERIC_TYPES or right_type not in NUMERIC_TYPES:
+                    add_error(f"Operación aritmética '{operator}' requiere tipos numéricos. Se encontró '{left_type}' y '{right_type}'", p.lineno(2))
+                elif left_type != right_type:
+                    add_error(f"Los operandos de '{operator}' deben ser del mismo tipo. Se encontró '{left_type}' y '{right_type}'", p.lineno(2))
+            p[0] = {'type': left_type if left_type in NUMERIC_TYPES else 'unknown'}
+    
+    elif operator in ['&&', '||']:
+        p[0] = {'type': 'bool'}
+    elif operator in ['==', '!=', '<', '<=', '>', '>=']:
+        p[0] = {'type': 'bool'}
+    else:
+        p[0] = {'type': left_type}
+
+# ============================================================================
+# FIN CONTRIBUCIÓN: Javier Gutiérrez - REGLA 1 y 2
+# ============================================================================
+
+# ============================================================================
+# CONTRIBUCIÓN: Javier Gutiérrez (SKEIILATT)
+# CONVERSIÓN - REGLA 3: Los tipos deben ser convertibles
+# Solo se permiten conversiones entre tipos compatibles
+# ============================================================================
+
+def p_expresion_conversion(p):
+    '''expresion : tipo LPAREN expresion RPAREN'''
+    target_type = p[1]
+    expr_type = p[3].get('type') if isinstance(p[3], dict) else 'unknown'
+    line = p.lineno(1)
+    
+    # JAVIER - REGLA 3: Verificar que la conversión es permitida
+    if expr_type != 'unknown':
+        if expr_type not in ALLOWED_CONVERSIONS:
+            add_error(f"El tipo '{expr_type}' no puede ser convertido", line)
+        elif target_type not in ALLOWED_CONVERSIONS.get(expr_type, set()):
+            add_error(f"No se puede convertir de '{expr_type}' a '{target_type}'", line)
+        else:
+            # JAVIER - REGLA 4: Advertir sobre truncamiento en conversiones
+            if expr_type in FLOAT_TYPES and target_type in INTEGER_TYPES:
+                print(f"Advertencia línea {line}: Conversión de '{expr_type}' a '{target_type}' puede truncar decimales")
+    
+    p[0] = {'type': target_type}
+
+# ============================================================================
+# FIN CONTRIBUCIÓN: Javier Gutiérrez - REGLAS 3 y 4
+# ============================================================================
 
 def p_expresion_unaria(p):
     '''expresion : NOT expresion

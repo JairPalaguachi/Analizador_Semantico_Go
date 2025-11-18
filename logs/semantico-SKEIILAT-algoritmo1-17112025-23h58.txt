@@ -1,0 +1,71 @@
+================================================================================
+ANÁLISIS SEMÁNTICO - LENGUAJE GO
+================================================================================
+Archivo analizado: algoritmo1.go
+Fecha y hora: 17/11/2025 23:58:39
+Usuario: SKEIILAT
+================================================================================
+
+REGLAS SEMÁNTICAS IMPLEMENTADAS
+--------------------------------------------------------------------------------
+Jair Palaguachi (JairPalaguachi) - IDENTIFICADORES Y ASIGNACIÓN:
+  1. Validación de declaración previa de variables
+  2. Validación de alcance de variables
+  3. Verificación de tipos en asignación
+  4. Inmutabilidad de constantes
+
+Javier Gutiérrez (SKEIILATT) - OPERACIONES Y CONVERSIÓN:
+  1. Homogeneidad de tipos en operaciones aritméticas
+  2. Concatenación solo con strings
+  3. Los tipos deben ser convertibles
+  4. La conversión explícita acepta el truncamiento
+
+Leonardo Macías (leodamac) - FUNCIONES Y ESTRUCTURAS:
+  1. El valor de retorno debe coincidir con el tipo declarado
+  2. Asignación de múltiples retornos debe respetar orden y tipo
+  3. Validación de condiciones booleanas
+  4. Uso correcto de break y continue
+
+================================================================================
+ERRORES SEMÁNTICOS ENCONTRADOS (0)
+--------------------------------------------------------------------------------
+No se encontraron errores semánticos.
+
+================================================================================
+TABLA DE SÍMBOLOS
+--------------------------------------------------------------------------------
+
+Ámbito 0:
+  - nombre: string (línea 11)
+  - edad: int (línea 12)
+  - precio: float64 (línea 13)
+  - activo: bool (línea 14)
+  - ciudad: string (línea 17)
+  - temperatura: float64 (línea 18)
+  - contador: int (línea 21)
+  - mensaje: string (línea 22)
+  - resultado: unknown (línea 23)
+  - x: int (línea 0)
+  - y: int (línea 0)
+  - z: int (línea 0)
+  - a: unknown (línea 0)
+  - b: unknown (línea 0)
+  - c: unknown (línea 0)
+  - nombre_completo: string (línea 31)
+  - codigo: int (línea 32)
+  - habilitado: bool (línea 33)
+  - PI: float64 [CONST] (línea 37)
+  - MAX_USUARIOS: int [CONST] (línea 38)
+  - suma: unknown (línea 41)
+  - resta: unknown (línea 42)
+  - multiplicacion: unknown (línea 43)
+  - division: int (línea 44)
+  - modulo: int (línea 45)
+  - main: func (línea 9)
+  - calcular: func (línea 71)
+
+Total de símbolos: 27
+
+================================================================================
+FIN DEL ANÁLISIS SEMÁNTICO
+================================================================================
