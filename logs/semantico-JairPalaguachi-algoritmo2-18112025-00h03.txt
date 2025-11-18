@@ -1,0 +1,49 @@
+================================================================================
+ANÁLISIS SEMÁNTICO - LENGUAJE GO
+================================================================================
+Archivo analizado: algoritmo2.go
+Fecha y hora: 18/11/2025 00:03:09
+Usuario: JairPalaguachi
+================================================================================
+
+REGLAS SEMÁNTICAS IMPLEMENTADAS
+--------------------------------------------------------------------------------
+================================================================================
+ERRORES SEMÁNTICOS ENCONTRADOS (10)
+--------------------------------------------------------------------------------
+Error semántico en línea 35: Variable 'valor' utilizada sin declaración previa
+Error semántico en línea 36: Variable 'valor' utilizada sin declaración previa
+Error semántico en línea 64: Variable 'valor' utilizada sin declaración previa
+Error semántico en línea 65: Variable 'indice' utilizada sin declaración previa
+Error semántico en línea 65: Variable 'valor' utilizada sin declaración previa
+Error semántico en línea 94: Variable 'resultado' utilizada sin declaración previa
+Error semántico en línea 120: Tipo de retorno incorrecto en función 'calcularPromedio'. Esperado: 'int', Encontrado: 'string'
+Error semántico en línea 121: Variable 'puntos' utilizada sin declaración previa
+Error semántico en línea 122: Tipo de retorno incorrecto en función 'calcularPromedio'. Esperado: 'int', Encontrado: 'string'
+Error semántico en línea 124: Tipo de retorno incorrecto en función 'calcularPromedio'. Esperado: 'int', Encontrado: 'string'
+
+================================================================================
+TABLA DE SÍMBOLOS
+--------------------------------------------------------------------------------
+
+Ámbito 0:
+  - edad: int (línea 11)
+  - puntuacion: int (línea 12)
+  - dia: string (línea 13)
+  - numeros: slice (línea 14)
+  - esAdulto: bool (línea 40)
+  - tieneAcceso: bool (línea 41)
+  - noEstaVacio: bool (línea 42)
+  - i: int (línea 50)
+  - contador: int (línea 55)
+  - a: int (línea 104)
+  - b: int (línea 105)
+  - main: func (línea 9)
+  - calcularPromedio: func (línea 114)
+  - evaluarNota: func (línea 118)
+
+Total de símbolos: 14
+
+================================================================================
+FIN DEL ANÁLISIS SEMÁNTICO
+================================================================================

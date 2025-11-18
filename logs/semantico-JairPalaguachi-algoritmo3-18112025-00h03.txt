@@ -1,0 +1,67 @@
+================================================================================
+ANÁLISIS SEMÁNTICO - LENGUAJE GO
+================================================================================
+Archivo analizado: algoritmo3.go
+Fecha y hora: 18/11/2025 00:03:17
+Usuario: JairPalaguachi
+================================================================================
+
+REGLAS SEMÁNTICAS IMPLEMENTADAS
+--------------------------------------------------------------------------------
+================================================================================
+ERRORES SEMÁNTICOS ENCONTRADOS (11)
+--------------------------------------------------------------------------------
+Error semántico en línea 34: Incompatibilidad de tipos: no se puede asignar 'slice' a '[]int'
+Error semántico en línea 35: Incompatibilidad de tipos: no se puede asignar 'slice' a '[]int'
+Error semántico en línea 109: Operación aritmética '*' requiere tipos numéricos. Se encontró 'void' y '*int'
+Error semántico en línea 135: Función 'sumar' retorna un solo valor, no múltiples
+Error semántico en línea 137: Función 'sumar' retorna un solo valor, no múltiples
+Error semántico en línea 144: Función 'dividir' debe retornar un valor de tipo 'multiple'
+Error semántico en línea 151: Variable 'num' utilizada sin declaración previa
+Error semántico en línea 157: Variable 'valores' utilizada sin declaración previa
+Error semántico en línea 161: Variable 'valores' utilizada sin declaración previa
+Error semántico en línea 162: Variable 'v' utilizada sin declaración previa
+Error semántico en línea 164: Variable 'valores' utilizada sin declaración previa
+
+================================================================================
+TABLA DE SÍMBOLOS
+--------------------------------------------------------------------------------
+
+Ámbito 0:
+  - numeros: [5]int (línea 14)
+  - diasSemana: array (línea 21)
+  - matriz: array (línea 22)
+  - lista: []int (línea 29)
+  - nombres: slice (línea 30)
+  - datos: []float64 (línea 31)
+  - subslice: slice (línea 36)
+  - edades: map[string]int (línea 44)
+  - precios: map (línea 50)
+  - edad: unknown (línea 0)
+  - existe: unknown (línea 0)
+  - resultado: unknown (línea 73)
+  - cociente: unknown (línea 0)
+  - err: unknown (línea 0)
+  - err2: unknown (línea 0)
+  - s: unknown (línea 0)
+  - p: unknown (línea 0)
+  - total: unknown (línea 95)
+  - promedioNotas: unknown (línea 98)
+  - valor: int (línea 102)
+  - puntero: *int (línea 103)
+  - a: int (línea 117)
+  - b: int (línea 118)
+  - main: func (línea 12)
+  - sumar: func (línea 128)
+  - dividir: func (línea 133)
+  - calcularOperaciones: func (línea 141)
+  - sumarTodos: func (línea 148)
+  - suma: float64 (línea 160)
+  - promediar: func (línea 156)
+  - incrementar: func (línea 168)
+
+Total de símbolos: 31
+
+================================================================================
+FIN DEL ANÁLISIS SEMÁNTICO
+================================================================================

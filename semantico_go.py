@@ -1186,23 +1186,6 @@ def generate_log(source_filename):
         # Reglas semánticas implementadas
         log_file.write("REGLAS SEMÁNTICAS IMPLEMENTADAS\n")
         log_file.write("-"*80 + "\n")
-        log_file.write("Jair Palaguachi (JairPalaguachi) - IDENTIFICADORES Y ASIGNACIÓN:\n")
-        log_file.write("  1. Validación de declaración previa de variables\n")
-        log_file.write("  2. Validación de alcance de variables\n")
-        log_file.write("  3. Verificación de tipos en asignación\n")
-        log_file.write("  4. Inmutabilidad de constantes\n\n")
-        
-        log_file.write("Javier Gutiérrez (SKEIILATT) - OPERACIONES Y CONVERSIÓN:\n")
-        log_file.write("  1. Homogeneidad de tipos en operaciones aritméticas\n")
-        log_file.write("  2. Concatenación solo con strings\n")
-        log_file.write("  3. Los tipos deben ser convertibles\n")
-        log_file.write("  4. La conversión explícita acepta el truncamiento\n\n")
-        
-        log_file.write("Leonardo Macías (leodamac) - FUNCIONES Y ESTRUCTURAS:\n")
-        log_file.write("  1. El valor de retorno debe coincidir con el tipo declarado\n")
-        log_file.write("  2. Asignación de múltiples retornos debe respetar orden y tipo\n")
-        log_file.write("  3. Validación de condiciones booleanas\n")
-        log_file.write("  4. Uso correcto de break y continue\n\n")
         
         log_file.write("="*80 + "\n")
         log_file.write(f"ERRORES SEMÁNTICOS ENCONTRADOS ({len(semantic_errors)})\n")
