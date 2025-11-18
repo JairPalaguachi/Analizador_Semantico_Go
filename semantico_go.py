@@ -1,0 +1,683 @@
+"""
+Analizador Semántico para el Lenguaje Go
+Proyecto: Implementación de un Analizador Semántico en Go
+Integrantes:
+- Jair Palaguachi (JairPalaguachi)
+- Javier Gutiérrez (SKEIILATT)
+"""
+
+import ply.yacc as yacc
+from lexico_go import tokens, lexer
+from datetime import datetime
+import sys
+import os
+
+# ============================================================================
+# TABLA DE SÍMBOLOS Y ESTRUCTURAS DE DATOS
+# ============================================================================
+
+class Symbol:
+    """Representa un símbolo en la tabla de símbolos"""
+    def __init__(self, name, symbol_type, value=None, scope='global', line=0, is_const=False, return_type=None):
+        self.name = name
+        self.symbol_type = symbol_type
+        self.value = value
+        self.scope = scope
+        self.line = line
+        self.is_const = is_const
+        self.return_type = return_type  # Para funciones
+
+class SymbolTable:
+    """Tabla de símbolos con soporte para ámbitos anidados"""
+    def __init__(self):
+        self.scopes = [{}]  # Stack de ámbitos
+        self.current_scope_level = 0
+        
+    def enter_scope(self):
+        """Entra a un nuevo ámbito"""
+        self.scopes.append({})
+        self.current_scope_level += 1
+    
+    def exit_scope(self):
+        """Sale del ámbito actual"""
+        if self.current_scope_level > 0:
+            self.scopes.pop()
+            self.current_scope_level -= 1
+    
+    def insert(self, symbol):
+        """Inserta un símbolo en el ámbito actual"""
+        self.scopes[self.current_scope_level][symbol.name] = symbol
+    
+    def lookup(self, name):
+        """Busca un símbolo en todos los ámbitos (de interno a externo)"""
+        for i in range(self.current_scope_level, -1, -1):
+            if name in self.scopes[i]:
+                return self.scopes[i][name]
+        return None
+    
+    def lookup_current_scope(self, name):
+        """Busca un símbolo solo en el ámbito actual"""
+        return self.scopes[self.current_scope_level].get(name)
+
+# Variables globales
+symbol_table = SymbolTable()
+semantic_errors = []
+current_function = None
+inside_loop = 0  # Contador para detectar bucles anidados
+
+# Tipos compatibles para operaciones
+NUMERIC_TYPES = {'int', 'int8', 'int16', 'int32', 'int64', 
+                 'uint', 'uint8', 'uint16', 'uint32', 'uint64',
+                 'float32', 'float64'}
+
+INTEGER_TYPES = {'int', 'int8', 'int16', 'int32', 'int64',
+                 'uint', 'uint8', 'uint16', 'uint32', 'uint64'}
+
+FLOAT_TYPES = {'float32', 'float64'}
+
+# Conversiones permitidas (tipo_origen -> tipos_destino_permitidos)
+ALLOWED_CONVERSIONS = {
+    'int': NUMERIC_TYPES,
+    'int8': NUMERIC_TYPES,
+    'int16': NUMERIC_TYPES,
+    'int32': NUMERIC_TYPES,
+    'int64': NUMERIC_TYPES,
+    'uint': NUMERIC_TYPES,
+    'uint8': NUMERIC_TYPES,
+    'uint16': NUMERIC_TYPES,
+    'uint32': NUMERIC_TYPES,
+    'uint64': NUMERIC_TYPES,
+    'float32': NUMERIC_TYPES,
+    'float64': NUMERIC_TYPES,
+    'string': {'string', 'rune', 'byte'},
+    'bool': {'bool'},
+}
+
+# ============================================================================
+# FUNCIONES AUXILIARES
+# ============================================================================
+
+def add_error(message, line=0):
+    """Agrega un error semántico"""
+    error_msg = f"Error semántico en línea {line}: {message}"
+    semantic_errors.append(error_msg)
+    print(error_msg)
+
+def get_type_from_literal(value):
+    """Determina el tipo de un literal"""
+    if isinstance(value, bool):
+        return 'bool'
+    elif isinstance(value, int):
+        return 'int'
+    elif isinstance(value, float):
+        return 'float64'
+    elif isinstance(value, str):
+        return 'string'
+    return 'unknown'
+
+# ============================================================================
+# PRECEDENCIA DE OPERADORES
+# ============================================================================
+
+precedence = (
+    ('left', 'OR'),
+    ('left', 'AND'),
+    ('left', 'EQ', 'NE'),
+    ('left', 'LT', 'LE', 'GT', 'GE'),
+    ('left', 'PLUS', 'MINUS'),
+    ('left', 'TIMES', 'DIVIDE', 'MOD'),
+    ('right', 'NOT'),
+    ('right', 'UMINUS'),
+    ('right', 'ADDRESS', 'POINTER'),
+)
+
+# ============================================================================
+# REGLAS GRAMATICALES CON ANÁLISIS SEMÁNTICO
+# ============================================================================
+
+def p_programa(p):
+    '''programa : package_decl imports declaraciones'''
+    print("✓ Programa analizado correctamente")
+    print(f"✓ Total de símbolos declarados: {sum(len(scope) for scope in symbol_table.scopes)}")
+
+def p_package_decl(p):
+    '''package_decl : PACKAGE ID'''
+    pass
+
+def p_imports(p):
+    '''imports : import_decl imports
+               | import_decl
+               | empty'''
+    pass
+
+def p_import_decl(p):
+    '''import_decl : IMPORT STRING_LITERAL
+                   | IMPORT LPAREN lista_imports RPAREN
+                   | empty'''
+    pass
+
+def p_lista_imports(p):
+    '''lista_imports : lista_imports STRING_LITERAL
+                     | STRING_LITERAL'''
+    pass
+
+def p_declaraciones(p):
+    '''declaraciones : declaraciones declaracion
+                     | declaracion'''
+    pass
+
+def p_declaracion(p):
+    '''declaracion : funcion
+                   | declaracion_var_global
+                   | bloque_var
+                   | declaracion_const
+                   | empty'''
+    pass
+
+
+# DECLARACIONES MÚLTIPLES Y ASIGNACIONES MÚLTIPLES
+def p_declaracion_var_multiple(p):
+    '''declaracion_var_multiple : VAR lista_ids tipo
+                                | VAR lista_ids tipo ASSIGN lista_expresiones
+                                | lista_ids DECLARE_ASSIGN lista_expresiones'''
+    
+    if p[1] == 'var':  # Declaración con VAR
+        var_names = p[2]
+        line = p.lineno(2)
+        
+        if len(p) == 4:  # VAR lista_ids tipo
+            var_type = p[3]
+            for var_name in var_names:
+                if symbol_table.lookup_current_scope(var_name):
+                    add_error(f"Variable '{var_name}' ya declarada en este ámbito", line)
+                else:
+                    symbol_table.insert(Symbol(var_name, var_type, None, 'local', line))
+        
+        elif len(p) == 6:  # VAR lista_ids tipo ASSIGN lista_expresiones
+            var_type = p[3]
+            for var_name in var_names:
+                if symbol_table.lookup_current_scope(var_name):
+                    add_error(f"Variable '{var_name}' ya declarada en este ámbito", line)
+                else:
+                    symbol_table.insert(Symbol(var_name, var_type, None, 'local', line))
+    
+    else:  # Declaración corta: lista_ids DECLARE_ASSIGN lista_expresiones
+        var_names = p[1]
+        line = p.lineno(1)
+        for var_name in var_names:
+            if symbol_table.lookup_current_scope(var_name):
+                add_error(f"Variable '{var_name}' ya declarada en este ámbito", line)
+            else:
+                symbol_table.insert(Symbol(var_name, 'unknown', None, 'local', line))
+
+def p_lista_ids(p):
+    '''lista_ids : lista_ids COMMA ID
+                 | lista_ids COMMA UNDERSCORE
+                 | ID
+                 | UNDERSCORE'''
+    if len(p) == 2:
+        p[0] = [p[1]] if p[1] != '_' else []
+    else:
+        p[0] = p[1] + ([p[3]] if p[3] != '_' else [])
+
+def p_asignacion_multiple(p):
+    '''asignacion_multiple : lista_ids ASSIGN lista_expresiones'''
+    # Para asignaciones múltiples, verificar que las variables estén declaradas
+    var_names = p[1]
+    line = p.lineno(1)
+    
+    for var_name in var_names:
+        if var_name != '_':  # Ignorar blank identifier
+            symbol = symbol_table.lookup(var_name)
+            if not symbol:
+                add_error(f"Variable '{var_name}' utilizada sin declaración previa", line)
+
+def p_bloque_const(p):
+    '''bloque_const : CONST LPAREN lista_decl_const RPAREN'''
+    pass
+
+def p_lista_decl_const(p):
+    '''lista_decl_const : lista_decl_const decl_const_bloque
+                        | decl_const_bloque'''
+    pass
+
+def p_decl_const_bloque(p):
+    '''decl_const_bloque : ID ASSIGN expresion
+                         | ID tipo ASSIGN expresion'''
+    const_name = p[1]
+    line = p.lineno(1)
+    
+    if symbol_table.lookup_current_scope(const_name):
+        add_error(f"Constante '{const_name}' ya declarada en este ámbito", line)
+    else:
+        if len(p) == 4:  # ID ASSIGN expresion
+            expr_type = p[3].get('type') if isinstance(p[3], dict) else 'unknown'
+            symbol_table.insert(Symbol(const_name, expr_type, None, 'local', line, is_const=True))
+        else:  # ID tipo ASSIGN expresion
+            const_type = p[2]
+            symbol_table.insert(Symbol(const_name, const_type, None, 'local', line, is_const=True))
+
+
+
+def p_parametros(p):
+    '''parametros : lista_parametros
+                  | empty'''
+    pass
+
+def p_lista_parametros(p):
+    '''lista_parametros : lista_parametros COMMA parametro
+                        | parametro'''
+    pass
+
+def p_parametro(p):
+    '''parametro : ID tipo
+                 | ID COMMA ID tipo
+                 | ID ELLIPSIS tipo
+                 | TIMES ID
+                 | UNDERSCORE tipo'''
+    if len(p) == 3 and p[1] != '_':  # ID tipo
+        param_name = p[1]
+        param_type = p[2]
+        line = p.lineno(1)
+        # Insertar parámetro en el ámbito actual (de la función)
+        symbol_table.insert(Symbol(param_name, param_type, None, 'local', line))
+
+def p_tipo_retorno(p):
+    '''tipo_retorno : tipo
+                    | LPAREN lista_tipos RPAREN
+                    | LPAREN lista_retornos_nombrados RPAREN'''
+    if len(p) == 2:
+        p[0] = p[1]  # Tipo simple
+    elif len(p) == 4:  # LPAREN lista_tipos RPAREN
+        p[0] = 'multiple'  # Múltiples retornos
+    else:  # LPAREN lista_retornos_nombrados RPAREN
+        p[0] = 'multiple'  # Múltiples retornos nombrados
+
+
+# MÚLTIPLES RETORNOS NOMBRADOS
+
+def p_lista_retornos_nombrados(p):
+    '''lista_retornos_nombrados : lista_retornos_nombrados COMMA ID tipo
+                                | ID tipo'''
+    # Insertar variables de retorno nombradas en el ámbito de la función
+    if len(p) == 3:  # ID tipo
+        ret_name = p[1]
+        ret_type = p[2]
+        line = p.lineno(1)
+        symbol_table.insert(Symbol(ret_name, ret_type, None, 'local', line))
+    else:  # lista_retornos_nombrados COMMA ID tipo
+        ret_name = p[3]
+        ret_type = p[4]
+        line = p.lineno(3)
+        symbol_table.insert(Symbol(ret_name, ret_type, None, 'local', line))
+
+def p_lista_tipos(p):
+    '''lista_tipos : lista_tipos COMMA tipo
+                   | tipo'''
+    pass
+
+def p_tipo(p):
+    '''tipo : ID
+            | LBRACKET INT_LITERAL RBRACKET tipo
+            | LBRACKET RBRACKET tipo
+            | MAP LBRACKET tipo RBRACKET tipo
+            | TIMES tipo'''
+    if len(p) == 2:
+        p[0] = p[1]
+    elif len(p) == 4 and p[1] == '[' and p[2] == ']':  # slice
+        p[0] = f'[]{p[3]}'
+    elif len(p) == 5 and p[1] == '[':  # array
+        p[0] = f'[{p[2]}]{p[4]}'
+    elif len(p) == 6 and p[1] == 'map':  # map
+        p[0] = f'map[{p[3]}]{p[5]}'
+    else:
+        p[0] = 'composite'
+
+def p_sentencias(p):
+    '''sentencias : sentencias sentencia
+                  | sentencia'''
+    pass
+
+
+
+
+def p_expresion_unaria(p):
+    '''expresion : NOT expresion
+                 | MINUS expresion %prec UMINUS
+                 | PLUS expresion %prec UMINUS
+                 | BITXOR expresion
+                 | BITNOT expresion
+                 | ADDRESS expresion %prec ADDRESS
+                 | BITAND expresion %prec ADDRESS
+                 | TIMES expresion %prec POINTER'''
+    
+    expr_type = p[2].get('type') if isinstance(p[2], dict) else 'unknown'
+    
+    if p[1] == '!':
+        p[0] = {'type': 'bool'}
+    elif p[1] == '&':
+        p[0] = {'type': f'*{expr_type}'}
+    elif p[1] == '*':
+        p[0] = {'type': expr_type[1:] if expr_type.startswith('*') else 'unknown'}
+    else:
+        p[0] = {'type': expr_type}
+
+def p_expresion_agrupada(p):
+    '''expresion : LPAREN expresion RPAREN'''
+    p[0] = p[2]
+
+def p_expresion_primaria(p):
+    '''expresion : ID
+                 | INT_LITERAL
+                 | FLOAT_LITERAL
+                 | STRING_LITERAL
+                 | RUNE_LITERAL
+                 | BOOL_LITERAL
+                 | NIL'''
+    
+    # SI ES UN LITERAL, NO VERIFICAR COMO VARIABLE
+    if p.slice[1].type == 'STRING_LITERAL':
+        p[0] = {'type': 'string'}
+    elif p.slice[1].type == 'INT_LITERAL':
+        p[0] = {'type': 'int'}
+    elif p.slice[1].type == 'FLOAT_LITERAL':
+        p[0] = {'type': 'float64'}
+    elif p.slice[1].type == 'BOOL_LITERAL':
+        p[0] = {'type': 'bool'}
+    elif p.slice[1].type == 'RUNE_LITERAL':
+        p[0] = {'type': 'rune'}
+    elif p[1] == 'nil':
+        p[0] = {'type': 'nil'}
+    else:
+        # SOLO VERIFICAR COMO VARIABLE SI ES UN ID
+        var_name = p[1]
+        line = p.lineno(1)
+        symbol = symbol_table.lookup(var_name)
+        if not symbol:
+            add_error(f"Variable '{var_name}' utilizada sin declaración previa", line)
+            p[0] = {'type': 'unknown'}
+        else:
+            p[0] = {'type': symbol.symbol_type}
+
+def p_expresion_llamada(p):
+    '''expresion : ID LPAREN lista_expresiones RPAREN
+                 | ID LPAREN RPAREN
+                 | ID DOT ID LPAREN lista_expresiones RPAREN
+                 | ID DOT ID LPAREN RPAREN'''
+    
+    # PARA FUNCIONES DE IMPRESIÓN COMO fmt.Println, NO VERIFICAR ARGUMENTOS COMO VARIABLES
+    if len(p) >= 5 and isinstance(p[1], str) and isinstance(p[3], str):
+        if p[1] == 'fmt' and p[3] == 'Println':
+            p[0] = {'type': 'void'}
+            return
+    
+    # Para funciones normales, obtener el tipo de retorno
+    func_name = p[1]
+    symbol = symbol_table.lookup(func_name)
+    if symbol and symbol.return_type:
+        p[0] = {'type': symbol.return_type}
+    else:
+        p[0] = {'type': 'unknown'}
+
+def p_expresion_make(p):
+    '''expresion : MAKE LPAREN tipo RPAREN
+                 | MAKE LPAREN tipo COMMA expresion RPAREN
+                 | MAKE LPAREN tipo COMMA expresion COMMA expresion RPAREN'''
+    p[0] = {'type': p[3]}
+
+def p_expresion_append(p):
+    '''expresion : APPEND LPAREN expresion COMMA lista_expresiones RPAREN
+                 | APPEND LPAREN expresion COMMA expresion RPAREN'''
+    p[0] = {'type': 'slice'}
+
+def p_expresion_len(p):
+    '''expresion : LEN LPAREN expresion RPAREN'''
+    p[0] = {'type': 'int'}
+
+def p_expresion_delete(p):
+    '''expresion : DELETE LPAREN expresion COMMA expresion RPAREN'''
+    p[0] = {'type': 'void'}
+
+def p_expresion_new(p):
+    '''expresion : ID DOT ID LPAREN STRING_LITERAL RPAREN'''
+    p[0] = {'type': 'unknown'}
+
+def p_expresion_array_acceso(p):
+    '''expresion : ID LBRACKET expresion RBRACKET'''
+    p[0] = {'type': 'unknown'}
+
+def p_array_literal(p):
+    '''expresion : LBRACKET INT_LITERAL RBRACKET tipo LBRACE lista_expresiones RBRACE
+                 | LBRACKET INT_LITERAL RBRACKET tipo LBRACE RBRACE
+                 | LBRACKET INT_LITERAL RBRACKET LBRACKET INT_LITERAL RBRACKET tipo LBRACE lista_filas_matriz RBRACE'''
+    p[0] = {'type': 'array'}
+
+def p_lista_filas_matriz(p):
+    '''lista_filas_matriz : lista_filas_matriz COMMA fila_matriz
+                          | fila_matriz'''
+    pass
+
+def p_fila_matriz(p):
+    '''fila_matriz : LBRACE lista_expresiones RBRACE'''
+    pass
+
+def p_slice_literal(p):
+    '''expresion : LBRACKET RBRACKET tipo LBRACE lista_expresiones RBRACE
+                 | LBRACKET RBRACKET tipo LBRACE RBRACE'''
+    p[0] = {'type': 'slice'}
+
+def p_slice_operacion(p):
+    '''expresion : ID LBRACKET expresion COLON expresion RBRACKET
+                 | ID LBRACKET COLON expresion RBRACKET
+                 | ID LBRACKET expresion COLON RBRACKET
+                 | ID LBRACKET COLON RBRACKET'''
+    p[0] = {'type': 'slice'}
+
+def p_map_literal(p):
+    '''expresion : MAP LBRACKET tipo RBRACKET tipo LBRACE pares_mapa RBRACE
+                 | MAP LBRACKET tipo RBRACKET tipo LBRACE pares_mapa COMMA RBRACE
+                 | MAP LBRACKET tipo RBRACKET tipo LBRACE RBRACE'''
+    p[0] = {'type': 'map'}
+
+def p_pares_mapa(p):
+    '''pares_mapa : pares_mapa COMMA par_mapa
+                  | par_mapa'''
+    pass
+
+def p_par_mapa(p):
+    '''par_mapa : expresion COLON expresion'''
+    pass
+
+def p_lista_expresiones(p):
+    '''lista_expresiones : lista_expresiones COMMA expresion
+                         | expresion'''
+    pass
+
+def p_empty(p):
+    '''empty :'''
+    pass
+
+def p_error(p):
+    if p:
+        error_msg = f"Error de sintaxis en '{p.value}' (Token: {p.type}, Línea: {p.lineno})"
+        print(error_msg)
+        parser.errok()
+    else:
+        print("Error de sintaxis: fin de archivo inesperado")
+
+# ============================================================================
+# CONSTRUCCIÓN DEL PARSER
+# ============================================================================
+
+parser = yacc.yacc()
+
+# ============================================================================
+# FUNCIONES DE ANÁLISIS Y LOGGING
+# ============================================================================
+
+def analyze_file(filename):
+    """
+    Analiza semánticamente un archivo de código Go.
+    """
+    global semantic_errors, symbol_table
+    semantic_errors = []
+    symbol_table = SymbolTable()
+    
+    try:
+        with open(filename, 'r', encoding='utf-8') as file:
+            data = file.read()
+    except FileNotFoundError:
+        print(f"Error: El archivo '{filename}' no fue encontrado.")
+        return
+    except Exception as e:
+        print(f"Error al leer el archivo: {e}")
+        return
+    
+    print(f"\n{'='*80}")
+    print(f"ANÁLISIS SEMÁNTICO DEL ARCHIVO: {filename}")
+    print(f"{'='*80}\n")
+    
+    # Realizar el análisis semántico
+    result = parser.parse(data, lexer=lexer)
+    
+    # Resumen
+    print(f"\n{'='*80}")
+    print(f"RESUMEN DEL ANÁLISIS SEMÁNTICO")
+    print(f"{'='*80}")
+    print(f"Total de errores semánticos encontrados: {len(semantic_errors)}")
+    
+    if semantic_errors:
+        print(f"\n{'='*80}")
+        print(f"ERRORES SEMÁNTICOS DETECTADOS")
+        print(f"{'='*80}")
+        for error in semantic_errors:
+            print(error)
+    else:
+        print("\n✓ No se encontraron errores semánticos")
+    
+    # Mostrar tabla de símbolos
+    print(f"\n{'='*80}")
+    print(f"TABLA DE SÍMBOLOS")
+    print(f"{'='*80}")
+    for level, scope in enumerate(symbol_table.scopes):
+        if scope:
+            print(f"\nÁmbito {level}:")
+            for name, symbol in scope.items():
+                const_str = " [CONST]" if symbol.is_const else ""
+                print(f"  - {name}: {symbol.symbol_type}{const_str} (línea {symbol.line})")
+    
+    # Generar archivo de log
+    generate_log(filename)
+
+def get_git_username():
+    """
+    Obtiene el nombre de usuario de Git configurado localmente.
+    """
+    try:
+        import subprocess
+        result = subprocess.run(
+            ['git', 'config', 'user.name'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            username = result.stdout.strip()
+            username = username.replace(' ', '')
+            return username
+        else:
+            return 'usuario'
+    except:
+        return 'usuario'
+
+def generate_log(source_filename):
+    """
+    Genera un archivo de log con los errores semánticos encontrados.
+    """
+    # Crear carpeta de logs si no existe
+    if not os.path.exists('logs'):
+        os.makedirs('logs')
+    
+    # Obtener información del usuario de git
+    git_user = get_git_username()
+    
+    # Generar nombre del archivo de log
+    now = datetime.now()
+    base = os.path.splitext(os.path.basename(source_filename))[0]
+    timestamp = now.strftime('%d%m%Y-%Hh%M')
+    log_filename = f"logs/semantico-{git_user}-{base}-{timestamp}.txt"
+    
+    # Escribir el log
+    with open(log_filename, 'w', encoding='utf-8') as log_file:
+        log_file.write("="*80 + "\n")
+        log_file.write(f"ANÁLISIS SEMÁNTICO - LENGUAJE GO\n")
+        log_file.write("="*80 + "\n")
+        log_file.write(f"Archivo analizado: {source_filename}\n")
+        log_file.write(f"Fecha y hora: {now.strftime('%d/%m/%Y %H:%M:%S')}\n")
+        log_file.write(f"Usuario: {git_user}\n")
+        log_file.write("="*80 + "\n\n")
+        
+        # Reglas semánticas implementadas
+        log_file.write("REGLAS SEMÁNTICAS IMPLEMENTADAS\n")
+        log_file.write("-"*80 + "\n")
+        log_file.write("Jair Palaguachi (JairPalaguachi) - IDENTIFICADORES Y ASIGNACIÓN:\n")
+        log_file.write("  1. Validación de declaración previa de variables\n")
+        log_file.write("  2. Validación de alcance de variables\n")
+        log_file.write("  3. Verificación de tipos en asignación\n")
+        log_file.write("  4. Inmutabilidad de constantes\n\n")
+        
+        log_file.write("Javier Gutiérrez (SKEIILATT) - OPERACIONES Y CONVERSIÓN:\n")
+        log_file.write("  1. Homogeneidad de tipos en operaciones aritméticas\n")
+        log_file.write("  2. Concatenación solo con strings\n")
+        log_file.write("  3. Los tipos deben ser convertibles\n")
+        log_file.write("  4. La conversión explícita acepta el truncamiento\n\n")
+        
+        log_file.write("Leonardo Macías (leodamac) - FUNCIONES Y ESTRUCTURAS:\n")
+        log_file.write("  1. El valor de retorno debe coincidir con el tipo declarado\n")
+        log_file.write("  2. Asignación de múltiples retornos debe respetar orden y tipo\n")
+        log_file.write("  3. Validación de condiciones booleanas\n")
+        log_file.write("  4. Uso correcto de break y continue\n\n")
+        
+        log_file.write("="*80 + "\n")
+        log_file.write(f"ERRORES SEMÁNTICOS ENCONTRADOS ({len(semantic_errors)})\n")
+        log_file.write("-"*80 + "\n")
+        if semantic_errors:
+            for error in semantic_errors:
+                log_file.write(error + "\n")
+        else:
+            log_file.write("No se encontraron errores semánticos.\n")
+        
+        # Tabla de símbolos
+        log_file.write("\n" + "="*80 + "\n")
+        log_file.write("TABLA DE SÍMBOLOS\n")
+        log_file.write("-"*80 + "\n")
+        total_symbols = 0
+        for level, scope in enumerate(symbol_table.scopes):
+            if scope:
+                log_file.write(f"\nÁmbito {level}:\n")
+                for name, symbol in scope.items():
+                    const_str = " [CONST]" if symbol.is_const else ""
+                    log_file.write(f"  - {name}: {symbol.symbol_type}{const_str} (línea {symbol.line})\n")
+                    total_symbols += 1
+        
+        log_file.write(f"\nTotal de símbolos: {total_symbols}\n")
+        
+        log_file.write("\n" + "="*80 + "\n")
+        log_file.write("FIN DEL ANÁLISIS SEMÁNTICO\n")
+        log_file.write("="*80 + "\n")
+    
+    print(f"\n✓ Log generado exitosamente: {log_filename}")
+
+# ============================================================================
+# PUNTO DE ENTRADA
+# ============================================================================
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print("Uso: python semantico_go.py <archivo.go>")
+        print("Ejemplo: python semantico_go.py algoritmo1.go")
+        sys.exit(1)
+    
+    filename = sys.argv[1]
+    analyze_file(filename)
+    
