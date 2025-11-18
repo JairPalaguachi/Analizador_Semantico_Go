@@ -1,0 +1,67 @@
+================================================================================
+ANÁLISIS SEMÁNTICO - LENGUAJE GO
+================================================================================
+Archivo analizado: algoritmo2.go
+Fecha y hora: 17/11/2025 23:58:52
+Usuario: SKEIILAT
+================================================================================
+
+REGLAS SEMÁNTICAS IMPLEMENTADAS
+--------------------------------------------------------------------------------
+Jair Palaguachi (JairPalaguachi) - IDENTIFICADORES Y ASIGNACIÓN:
+  1. Validación de declaración previa de variables
+  2. Validación de alcance de variables
+  3. Verificación de tipos en asignación
+  4. Inmutabilidad de constantes
+
+Javier Gutiérrez (SKEIILATT) - OPERACIONES Y CONVERSIÓN:
+  1. Homogeneidad de tipos en operaciones aritméticas
+  2. Concatenación solo con strings
+  3. Los tipos deben ser convertibles
+  4. La conversión explícita acepta el truncamiento
+
+Leonardo Macías (leodamac) - FUNCIONES Y ESTRUCTURAS:
+  1. El valor de retorno debe coincidir con el tipo declarado
+  2. Asignación de múltiples retornos debe respetar orden y tipo
+  3. Validación de condiciones booleanas
+  4. Uso correcto de break y continue
+
+================================================================================
+ERRORES SEMÁNTICOS ENCONTRADOS (10)
+--------------------------------------------------------------------------------
+Error semántico en línea 35: Variable 'valor' utilizada sin declaración previa
+Error semántico en línea 36: Variable 'valor' utilizada sin declaración previa
+Error semántico en línea 64: Variable 'valor' utilizada sin declaración previa
+Error semántico en línea 65: Variable 'indice' utilizada sin declaración previa
+Error semántico en línea 65: Variable 'valor' utilizada sin declaración previa
+Error semántico en línea 94: Variable 'resultado' utilizada sin declaración previa
+Error semántico en línea 120: Tipo de retorno incorrecto en función 'calcularPromedio'. Esperado: 'int', Encontrado: 'string'
+Error semántico en línea 121: Variable 'puntos' utilizada sin declaración previa
+Error semántico en línea 122: Tipo de retorno incorrecto en función 'calcularPromedio'. Esperado: 'int', Encontrado: 'string'
+Error semántico en línea 124: Tipo de retorno incorrecto en función 'calcularPromedio'. Esperado: 'int', Encontrado: 'string'
+
+================================================================================
+TABLA DE SÍMBOLOS
+--------------------------------------------------------------------------------
+
+Ámbito 0:
+  - edad: int (línea 11)
+  - puntuacion: int (línea 12)
+  - dia: string (línea 13)
+  - numeros: slice (línea 14)
+  - esAdulto: bool (línea 40)
+  - tieneAcceso: bool (línea 41)
+  - noEstaVacio: bool (línea 42)
+  - i: int (línea 50)
+  - contador: int (línea 55)
+  - a: int (línea 104)
+  - b: int (línea 105)
+  - main: func (línea 9)
+  - calcularPromedio: func (línea 114)
+  - evaluarNota: func (línea 118)
+
+Total de símbolos: 14
+
+================================================================================
+FIN DEL ANÁLISIS SEMÁNTICO
+================================================================================
