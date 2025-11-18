@@ -406,6 +406,47 @@ def p_asignacion(p):
 # FIN CONTRIBUCIÓN: Jair Palaguachi - REGLA 3
 # ============================================================================
 
+# ============================================================================
+# CONTRIBUCIÓN: Jair Palaguachi (JairPalaguachi)
+# ASIGNACIÓN DE TIPO - REGLA 4: Inmutabilidad de constantes
+# Las constantes no pueden ser modificadas después de su declaración
+# ============================================================================
+
+def p_declaracion_const(p):
+    '''declaracion_const : CONST ID ASSIGN expresion
+                         | CONST ID tipo ASSIGN expresion'''
+    const_name = p[2]
+    line = p.lineno(2)
+    
+    if symbol_table.lookup_current_scope(const_name):
+        add_error(f"Constante '{const_name}' ya declarada en este ámbito", line)
+    else:
+        if len(p) == 5:  # CONST ID ASSIGN expresion
+            expr_info = p[4]
+            expr_type = expr_info.get('type') if isinstance(expr_info, dict) else 'unknown'
+            
+            # DETERMINAR TIPO CORRECTAMENTE PARA LITERALES
+            if expr_type == 'unknown' and hasattr(p.slice[4], 'type'):
+                token_type = p.slice[4].type
+                if token_type == 'STRING_LITERAL':
+                    expr_type = 'string'
+                elif token_type == 'INT_LITERAL':
+                    expr_type = 'int'
+                elif token_type == 'FLOAT_LITERAL':
+                    expr_type = 'float64'
+                elif token_type == 'BOOL_LITERAL':
+                    expr_type = 'bool'
+                    
+            symbol_table.insert(Symbol(const_name, expr_type, None, 'global', line, is_const=True))
+        else:  # CONST ID tipo ASSIGN expresion
+            const_type = p[3]
+            symbol_table.insert(Symbol(const_name, const_type, None, 'global', line, is_const=True))
+
+# ============================================================================
+# FIN CONTRIBUCIÓN: Jair Palaguachi - REGLA 4
+# ============================================================================
+
+
 # DECLARACIONES MÚLTIPLES Y ASIGNACIONES MÚLTIPLES
 def p_declaracion_var_multiple(p):
     '''declaracion_var_multiple : VAR lista_ids tipo
