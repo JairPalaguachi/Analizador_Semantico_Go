@@ -174,6 +174,122 @@ def p_declaracion(p):
                    | empty'''
     pass
 
+# ============================================================================
+# CONTRIBUCIÓN: Jair Palaguachi (JairPalaguachi)
+# IDENTIFICADORES - REGLA 1: Validación de declaración previa
+# Toda variable, función, constante o tipo debe estar declarada antes de ser utilizada
+# ============================================================================
+
+def p_declaracion_var_global(p):
+    '''declaracion_var_global : VAR ID tipo
+                              | VAR ID tipo ASSIGN expresion
+                              | VAR ID ASSIGN expresion'''
+    var_name = p[2]
+    line = p.lineno(2)
+    
+    # Verificar si ya existe en el ámbito actual
+    if symbol_table.lookup_current_scope(var_name):
+        add_error(f"Variable '{var_name}' ya declarada en este ámbito", line)
+    else:
+        # Determinar el tipo
+        if len(p) == 4:  # VAR ID tipo
+            var_type = p[3]
+            symbol_table.insert(Symbol(var_name, var_type, None, 'global', line))
+        elif len(p) == 6:  # VAR ID tipo ASSIGN expresion
+            var_type = p[3]
+            expr_type = p[5].get('type') if isinstance(p[5], dict) else 'unknown'
+            
+            # JAIR - REGLA 3: Verificación de tipos en asignación
+            if expr_type != 'unknown' and var_type != expr_type:
+                if not (var_type in NUMERIC_TYPES and expr_type in NUMERIC_TYPES):
+                    add_error(f"Incompatibilidad de tipos: no se puede asignar '{expr_type}' a '{var_type}'", line)
+            
+            symbol_table.insert(Symbol(var_name, var_type, None, 'global', line))
+        else:  # VAR ID ASSIGN expresion
+            expr_type = p[4].get('type') if isinstance(p[4], dict) else 'unknown'
+            symbol_table.insert(Symbol(var_name, expr_type, None, 'global', line))
+
+def p_bloque_var(p):
+    '''bloque_var : VAR LPAREN lista_decl_bloque RPAREN'''
+    pass
+
+def p_lista_decl_bloque(p):
+    '''lista_decl_bloque : lista_decl_bloque decl_var_bloque
+                         | decl_var_bloque'''
+    pass
+
+def p_decl_var_bloque(p):
+    '''decl_var_bloque : ID tipo
+                       | ID tipo ASSIGN expresion
+                       | ID ASSIGN expresion'''
+    var_name = p[1]
+    line = p.lineno(1)
+    
+    if symbol_table.lookup_current_scope(var_name):
+        add_error(f"Variable '{var_name}' ya declarada en este ámbito", line)
+    else:
+        if len(p) == 3:  # ID tipo
+            var_type = p[2]
+            symbol_table.insert(Symbol(var_name, var_type, None, 'local', line))
+        elif len(p) == 5:  # ID tipo ASSIGN expresion
+            var_type = p[2]
+            symbol_table.insert(Symbol(var_name, var_type, None, 'local', line))
+        else:  # ID ASSIGN expresion
+            expr_type = p[3].get('type') if isinstance(p[3], dict) else 'unknown'
+            symbol_table.insert(Symbol(var_name, expr_type, None, 'local', line))
+
+def p_declaracion_var(p):
+    '''declaracion_var : VAR ID tipo
+                       | VAR ID tipo ASSIGN expresion
+                       | VAR ID ASSIGN expresion
+                       | ID DECLARE_ASSIGN expresion'''
+    var_name = p[2] if p[1] == 'var' else p[1]
+    line = p.lineno(2) if p[1] == 'var' else p.lineno(1)
+    
+    if symbol_table.lookup_current_scope(var_name):
+        add_error(f"Variable '{var_name}' ya declarada en este ámbito", line)
+    else:
+        if len(p) == 4 and p[1] == 'var':  # VAR ID tipo
+            var_type = p[3]
+            symbol_table.insert(Symbol(var_name, var_type, None, 'local', line))
+        elif len(p) == 4:  # ID DECLARE_ASSIGN expresion
+            expr_info = p[3]
+            expr_type = expr_info.get('type') if isinstance(expr_info, dict) else 'unknown'
+            
+            # DETERMINAR TIPO CORRECTAMENTE PARA LITERALES
+            if expr_type == 'unknown' and hasattr(p.slice[3], 'type'):
+                token_type = p.slice[3].type
+                if token_type == 'STRING_LITERAL':
+                    expr_type = 'string'
+                elif token_type == 'INT_LITERAL':
+                    expr_type = 'int'
+                elif token_type == 'FLOAT_LITERAL':
+                    expr_type = 'float64'
+                elif token_type == 'BOOL_LITERAL':
+                    expr_type = 'bool'
+                    
+            symbol_table.insert(Symbol(var_name, expr_type, None, 'local', line))
+        elif len(p) == 6:  # VAR ID tipo ASSIGN expresion
+            var_type = p[3]
+            symbol_table.insert(Symbol(var_name, var_type, None, 'local', line))
+        else:  # VAR ID ASSIGN expresion
+            expr_info = p[4]
+            expr_type = expr_info.get('type') if isinstance(expr_info, dict) else 'unknown'
+            
+            # DETERMINAR TIPO CORRECTAMENTE PARA LITERALES
+            if expr_type == 'unknown' and hasattr(p.slice[4], 'type'):
+                token_type = p.slice[4].type
+                if token_type == 'STRING_LITERAL':
+                    expr_type = 'string'
+                elif token_type == 'INT_LITERAL':
+                    expr_type = 'int'
+                elif token_type == 'FLOAT_LITERAL':
+                    expr_type = 'float64'
+                elif token_type == 'BOOL_LITERAL':
+                    expr_type = 'bool'
+                    
+            symbol_table.insert(Symbol(var_name, expr_type, None, 'local', line))
+
 
 # DECLARACIONES MÚLTIPLES Y ASIGNACIONES MÚLTIPLES
 def p_declaracion_var_multiple(p):
