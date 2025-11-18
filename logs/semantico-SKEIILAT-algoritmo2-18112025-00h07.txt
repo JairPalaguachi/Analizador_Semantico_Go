@@ -2,30 +2,12 @@
 ANÁLISIS SEMÁNTICO - LENGUAJE GO
 ================================================================================
 Archivo analizado: algoritmo2.go
-Fecha y hora: 17/11/2025 23:58:52
+Fecha y hora: 18/11/2025 00:07:46
 Usuario: SKEIILAT
 ================================================================================
 
 REGLAS SEMÁNTICAS IMPLEMENTADAS
 --------------------------------------------------------------------------------
-Jair Palaguachi (JairPalaguachi) - IDENTIFICADORES Y ASIGNACIÓN:
-  1. Validación de declaración previa de variables
-  2. Validación de alcance de variables
-  3. Verificación de tipos en asignación
-  4. Inmutabilidad de constantes
-
-Javier Gutiérrez (SKEIILATT) - OPERACIONES Y CONVERSIÓN:
-  1. Homogeneidad de tipos en operaciones aritméticas
-  2. Concatenación solo con strings
-  3. Los tipos deben ser convertibles
-  4. La conversión explícita acepta el truncamiento
-
-Leonardo Macías (leodamac) - FUNCIONES Y ESTRUCTURAS:
-  1. El valor de retorno debe coincidir con el tipo declarado
-  2. Asignación de múltiples retornos debe respetar orden y tipo
-  3. Validación de condiciones booleanas
-  4. Uso correcto de break y continue
-
 ================================================================================
 ERRORES SEMÁNTICOS ENCONTRADOS (10)
 --------------------------------------------------------------------------------
