@@ -565,6 +565,51 @@ def p_tipo_retorno(p):
     else:  # LPAREN lista_retornos_nombrados RPAREN
         p[0] = 'multiple'  # Múltiples retornos nombrados
 
+# ============================================================================
+# CONTRIBUCIÓN: Jair Palaguachi (JairPalaguachi)
+# RETORNO DE FUNCIONES - REGLA 1: El valor de retorno debe coincidir con el tipo declarado
+# ============================================================================
+
+def p_return_statement(p):
+    '''return_statement : RETURN
+                        | RETURN expresion
+                        | RETURN lista_expresiones'''
+    global current_function
+    line = p.lineno(1)
+    
+    if not current_function:
+        add_error(f"Return fuera de una función", line)
+        return
+    
+    # EXCEPCIÓN: FUNCIÓN main NO NECESITA RETORNO EN GO
+    if current_function['name'] == 'main':
+        return
+    
+    expected_type = current_function.get('return_type', 'void')
+    
+    if len(p) == 2:  # RETURN sin valor
+        if expected_type != 'void':
+            add_error(f"Función '{current_function['name']}' debe retornar un valor de tipo '{expected_type}'", line)
+    
+    elif len(p) == 3 and p.slice[2].type != 'lista_expresiones':  # RETURN expresion
+        return_type = p[2].get('type') if isinstance(p[2], dict) else 'unknown'
+        
+        if expected_type == 'void':
+            add_error(f"Función '{current_function['name']}' no debe retornar ningún valor", line)
+        elif return_type != 'unknown' and return_type != expected_type:
+            if not (return_type in NUMERIC_TYPES and expected_type in NUMERIC_TYPES):
+                add_error(f"Tipo de retorno incorrecto en función '{current_function['name']}'. Esperado: '{expected_type}', Encontrado: '{return_type}'", line)
+    
+    else:  # RETURN lista_expresiones (múltiples retornos)
+        # Para múltiples retornos, la función debe esperar múltiples retornos
+        if expected_type != 'multiple':
+            add_error(f"Función '{current_function['name']}' retorna un solo valor, no múltiples", line)
+        else:
+            pass
+
+# ============================================================================
+# FIN CONTRIBUCIÓN: Jair Palaguachi (JairPalaguachi) - REGLAS 1 y 2
+# ============================================================================
 
 # MÚLTIPLES RETORNOS NOMBRADOS
 
