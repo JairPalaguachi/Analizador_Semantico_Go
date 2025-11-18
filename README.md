@@ -1,60 +1,65 @@
-# Analizador Sintáctico para Go
+# Analizadores Semántico
+## Compilador para Go - Analizadores Léxico, Sintáctico y Semántico
 
-Implementación de un analizador sintáctico (parser) para el lenguaje de programación Go, desarrollado en Python utilizando PLY (Python Lex-Yacc). Este proyecto representa la segunda fase de un compilador educativo.
+Implementación completa de un compilador educativo para el lenguaje de programación Go, desarrollado en Python utilizando PLY (Python Lex-Yacc). Este proyecto cubre las tres fases fundamentales del análisis de código fuente.
 
 ## Autores
 
 - **Jair Palaguachi** ([@JairPalaguachi](https://github.com/JairPalaguachi))
 - **Javier Gutiérrez** ([@SKEIILATT](https://github.com/SKEIILATT))
-- **Leonardo Macías** ([@leodamac](https://github.com/leodamac))
 
-## Descripción
+## Descripción General
 
-El analizador sintáctico valida que la secuencia de tokens generada por el analizador léxico cumpla con las reglas gramaticales del lenguaje Go. Utiliza una gramática libre de contexto implementada con PLY yacc para construir y validar la estructura sintáctica de programas Go.
+Este proyecto implementa un compilador completo en tres fases para Go:
 
-## Características Implementadas
+1. **Analizador Léxico**: Identifica y clasifica tokens del código fuente
+2. **Analizador Sintáctico**: Valida la estructura gramatical del código
+3. **Analizador Semántico** : Verifica la coherencia lógica y tipos de datos
 
-### Estructuras de Datos
-- **Arrays**: Declaración y acceso a arreglos de tamaño fijo
-- **Slices**: Arreglos dinámicos con operaciones de slicing
-- **Maps**: Diccionarios con inicialización literal y operaciones
 
-### Estructuras de Control
-- **IF-ELSE**: Condicionales simples, anidados y con inicialización
-- **FOR**: Bucles tradicionales, estilo while, y for-range
-- **SWITCH**: Switch con expresión, sin expresión, y con inicialización
 
-### Declaraciones
-- **Variables**: `var`, declaración corta (`:=`), múltiple, y bloques
-- **Constantes**: `const` simple y en bloques
-- **Funciones**: Con parámetros, retornos simples, múltiples y nombrados
-- **Funciones variádicas**: Soporte para parámetros variables (`...`)
+**Archivo**: `semantico_go.py`
 
-### Expresiones
-- **Aritméticas**: Suma, resta, multiplicación, división, módulo
-- **Lógicas**: AND, OR, NOT con precedencia correcta
-- **Relacionales**: Comparaciones (==, !=, <, <=, >, >=)
-- **Bit a bit**: AND, OR, XOR, desplazamientos
-- **Punteros**: Operadores `&` (dirección) y `*` (desreferencia)
+Verifica la coherencia lógica del código más allá de la sintaxis:
+- Variables declaradas antes de uso
+- Compatibilidad de tipos en asignaciones y operaciones
+- Inmutabilidad de constantes
+- Alcance de variables (scope)
+- Tipos de retorno en funciones
+- Condiciones booleanas en estructuras de control
+- Uso correcto de break/continue
 
-### Funciones Built-in
-- `make()`: Creación de slices, maps y channels
-- `append()`: Agregar elementos a slices
-- `len()`: Longitud de colecciones
-- `delete()`: Eliminar elementos de maps
+**Reglas Implementadas** (12 reglas semánticas):
 
-### Características Especiales
-- **Blank identifier** (`_`): En asignaciones y for-range
-- **Imports múltiples**: Con sintaxis de paréntesis
-- **Literal nil**: Para punteros y valores nulos
-- **Operadores de asignación compuesta**: `+=`, `-=`, `*=`, etc.
+**Jair Palaguachi** - Identificadores, Asignación, Funciones y Estructuras:
+1. ✅ Validación de declaración previa
+2. ✅ Validación de alcance de variables
+3. ✅ Verificación de tipos en asignación
+4. ✅ Inmutabilidad de constantes
+5. ✅ Tipo de retorno correcto en funciones
+6. ✅ Múltiples retornos respetando orden y tipo
 
-## Requisitos
+**Javier Gutiérrez** - Operaciones, Conversión, Funciones y Estructuras:
+1. ✅ Homogeneidad de tipos en operaciones aritméticas
+2. ✅ Concatenación solo con strings
+3. ✅ Tipos convertibles en conversiones
+4. ✅ Advertencia de truncamiento en conversiones
+5. ✅ Condiciones booleanas en if/for
+6. ✅ Break y continue solo en bucles/switch
 
-- Python 3.7 o superior
-- PLY (Python Lex-Yacc) 3.11 o superior
 
-## Instalación
+
+**Uso**:
+```bash
+python semantico_go.py algoritmo3.go
+```
+
+**Salida**: Errores semánticos y tabla de símbolos
+
+---
+
+## Instalación Rápida
+
 ```bash
 # Instalar dependencias
 pip install ply
@@ -62,135 +67,173 @@ pip install ply
 # Clonar el repositorio
 git clone <url-del-repositorio>
 cd Analizador_Sintactico_Go
+
+# Verificar instalación
+python semantico_go.py algoritmo1.go
 ```
 
-## Uso
+## Uso Completo
 
-### Análisis Sintáctico Básico
+### Análisis Paso a Paso
+
 ```bash
-python sintactico_go.py <archivo.go>
+# 1. Análisis Léxico
+python lexico_go.py mi_codigo.go
+
+# 2. Análisis Sintáctico
+python sintactico_go.py mi_codigo.go
+
+# 3. Análisis Semántico
+python semantico_go.py mi_codigo.go
 ```
 
-### Ejemplos
-```bash
-# Analizar variables y operadores básicos
-python sintactico_go.py algoritmo1.go
 
-# Analizar estructuras de control
-python sintactico_go.py algoritmo2.go
 
-# Analizar estructuras de datos y funciones avanzadas
-python sintactico_go.py algoritmo3.go
+## Ejemplos de Detección de Errores
+
+### ❌ Error Semántico: Variable No Declarada
+
+```go
+// Código incorrecto
+fmt.Println(contador)  // Error: contador no declarado
+contador := 0
 ```
 
-## Salida y Logs
-
-El analizador genera automáticamente un archivo de log en la carpeta `logs/` con el formato:
+**Salida del analizador**:
 ```
-sintactico-{usuario}-{archivo}-{fecha}-{hora}.txt
+Error semántico en línea 10: Variable 'contador' utilizada sin declaración previa
 ```
 
-### Ejemplo de Log
-```
-================================================================================
-ANÁLISIS SINTÁCTICO - LENGUAJE GO
-================================================================================
-Archivo analizado: algoritmo1.go
-Fecha y hora: 15/11/2025 18:14:01
-Usuario: leodamac
-================================================================================
+### ❌ Error Semántico: Incompatibilidad de Tipos
 
-ERRORES SINTÁCTICOS ENCONTRADOS (0)
---------------------------------------------------------------------------------
-No se encontraron errores sintácticos.
-
-================================================================================
-FIN DEL ANÁLISIS SINTÁCTICO
-================================================================================
+```go
+// Código incorrecto
+var edad int
+edad = 25.5  // Error: float64 no compatible con int
 ```
 
-### Con Errores
+**Salida del analizador**:
 ```
-ERRORES SINTÁCTICOS ENCONTRADOS (4)
---------------------------------------------------------------------------------
-Error de sintaxis en '&' (Token: BITAND, Línea: 103)
-Error de sintaxis en 'int' (Token: ID, Línea: 141)
-...
-```
-## Gramática Implementada
-
-### Ejemplo de Reglas
-```python
-# Declaración de variables
-declaracion_var : VAR ID tipo
-                | VAR ID tipo ASSIGN expresion
-                | ID DECLARE_ASSIGN expresion
-
-# Estructura IF-ELSE
-if_statement : IF condicion bloque
-             | IF condicion bloque ELSE bloque
-             | IF condicion bloque ELSE if_statement
-
-# Bucle FOR con range
-for_statement : FOR ID COMMA ID DECLARE_ASSIGN RANGE expresion bloque
+Error semántico en línea 18: Incompatibilidad de tipos: no se puede asignar 'float64' a 'int'
 ```
 
-## Precedencia de Operadores
-```python
-precedence = (
-    ('left', 'OR'),
-    ('left', 'AND'),
-    ('left', 'EQ', 'NE'),
-    ('left', 'LT', 'LE', 'GT', 'GE'),
-    ('left', 'PLUS', 'MINUS'),
-    ('left', 'TIMES', 'DIVIDE', 'MOD'),
-    ('right', 'NOT'),
-    ('right', 'UMINUS'),
-    ('right', 'ADDRESS', 'POINTER'),
-)
+### ❌ Error Semántico: Modificar Constante
+
+```go
+// Código incorrecto
+const PI = 3.14159
+PI = 3.14  // Error: constante inmutable
 ```
 
+**Salida del analizador**:
+```
+Error semántico en línea 22: No se puede asignar valor a constante 'PI'
+```
+
+### ✅ Código Correcto
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+    // Declaración correcta
+    var edad int = 25
+    const PI = 3.14159
+    
+    // Uso válido
+    fmt.Println(edad)
+    fmt.Println(PI)
+    
+    // Asignación válida
+    edad = 30  // OK: mismo tipo
+}
+```
+
+**Salida del analizador**:
+```
+✓ Programa analizado correctamente
+✓ No se encontraron errores semánticos
+```
 
 ## Estructura del Proyecto
+
 ```
 Analizador_Sintactico_Go/
-├── lexico_go.py              # Analizador léxico
-├── sintactico_go.py          # Analizador sintáctico ⭐
-├── algoritmo1.go             # Prueba: variables y operadores
-├── algoritmo2.go             # Prueba: estructuras de control
-├── algoritmo3.go             # Prueba: estructuras de datos avanzadas
-├── logs/                     # Logs de análisis
-│   ├── sintactico-usuario-algoritmo1-fecha.txt
-│   ├── sintactico-usuario-algoritmo2-fecha.txt
-│   └── sintactico-usuario-algoritmo3-fecha.txt
-├── parser.out                # Tabla de parsing de PLY
-└── parsetab.py               # Cache del parser
+│
+├── 📄 FASE 1: LÉXICO
+│   └── lexico_go.py                  # Analizador léxico
+│
+├── 📄 FASE 2: SINTÁCTICO
+│   └── sintactico_go.py              # Analizador sintáctico
+│
+├── 📄 FASE 3: SEMÁNTICO 
+│   └── semantico_go.py               # Analizador semántico
+│
+├── 🧪 PRUEBAS
+│   ├── algoritmo1.go                 # Variables y operadores
+│   ├── algoritmo2.go                 # Estructuras de control
+│   ├── algoritmo3.go                 # Estructuras de datos
+│
+├── 📊 LOGS
+│   ├── logs/lexico-*.txt            # Logs léxicos
+│   ├── logs/sintactico-*.txt        # Logs sintácticos
+│   └── logs/semantico-*.txt         # Logs semánticos
+│
+├── 📖 DOCUMENTACIÓN
+│   ── README.md                     # Este archivo
+│
+└── 🔧 AUXILIARES
+    ├── parser.out                    # Tabla de parsing
+    ├── parsetab.py                   # Cache del parser
+    └── __pycache__/
 ```
 
-## Mantenimiento
+## Formato de Logs
 
-### Limpiar Archivos Cache
-```bash
-# Borrar cache de PLY (necesario después de modificar la gramática)
-rm -f parser.out parsetab.py
+Cada fase genera logs con formato estandarizado:
 
-# Borrar cache de Python
-rm -rf __pycache__
+```
+{fase}-{usuario}-{archivo}-{fecha}-{hora}.txt
+
+Ejemplos:
+- lexico-JairPalaguachi-algoritmo1-15112025-19h46.txt
+- sintactico-leodamac-algoritmo2-15112025-19h42.txt
+- semantico-JairPalaguachi-algoritmo3-17112025-20h30.txt
 ```
 
-### Regenerar Parser
+## Tecnologías Utilizadas
 
-Después de modificar `sintactico_go.py`, es importante limpiar el cache:
-```bash
-rm -f parser.out parsetab.py
-python sintactico_go.py algoritmo1.go
-```
-
-
-## Tecnologías
-
-- **Python 3**: Lenguaje de implementación
-- **PLY (Python Lex-Yacc)**: Framework para construcción de parsers
+- **Python 3.7+**: Lenguaje de implementación
+- **PLY 3.11**: Framework Lex-Yacc para Python
 - **Git**: Control de versiones
+- **GitHub**: Repositorio y colaboración
 
 
+## Soporte y Contacto
+
+- **Repositorio**: [GitHub - Analizador_Sintactico_Go](https://github.com/usuario/Analizador_Sintactico_Go)
+- **Issues**: Reporta problemas en la sección de Issues del repositorio
+- **Documentación**: Consulta los archivos MD en el proyecto
+
+## Referencias
+
+- [The Go Programming Language Specification](https://go.dev/ref/spec)
+- [Go by Example](https://gobyexample.com)
+- [PLY Documentation](https://www.dabeaz.com/ply/)
+- Donovan, A. A. A., & Kernighan, B. W. - The Go Programming Language
+
+## Licencia
+
+Este proyecto es con fines educativos para el curso de Lenguajes de Programación.
+
+---
+
+**Curso**: Lenguajes de Programación  
+**Profesora**: Fanny Cisneros Carlota  
+**Institución**: ESPOL  
+**Período**: 2025-II
+
+
+---
