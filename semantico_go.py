@@ -290,6 +290,70 @@ def p_declaracion_var(p):
                     
             symbol_table.insert(Symbol(var_name, expr_type, None, 'local', line))
 
+# ============================================================================
+# FIN CONTRIBUCIÓN: Jair Palaguachi - REGLA 1
+# ============================================================================
+
+# ============================================================================
+# CONTRIBUCIÓN: Jair Palaguachi (JairPalaguachi)
+# IDENTIFICADORES - REGLA 2: Validación de alcance de variables
+# Variables declaradas dentro de un bloque solo son accesibles dentro de ese bloque
+# ============================================================================
+
+def p_bloque(p):
+    '''bloque : LBRACE sentencias RBRACE
+              | LBRACE RBRACE'''
+    # Entrar y salir del ámbito para manejar el scope
+    symbol_table.enter_scope()
+    # Aquí se procesarían las sentencias
+    symbol_table.exit_scope()
+
+def p_funcion(p):
+    '''funcion : FUNC ID LPAREN parametros RPAREN tipo_retorno bloque
+               | FUNC ID LPAREN parametros RPAREN bloque'''
+    global current_function
+    func_name = p[2]
+    line = p.lineno(2)
+    
+    if symbol_table.lookup_current_scope(func_name):
+        add_error(f"Función '{func_name}' ya declarada", line)
+    else:
+        # LEONARDO - REGLA 1: Guardar tipo de retorno de la función
+        if len(p) == 8:  # Con tipo de retorno
+            return_type = p[6]
+        else:  # Sin tipo de retorno explícito (void)
+            return_type = 'void'
+        
+        # Insertar función con su tipo de retorno
+        symbol_table.insert(Symbol(func_name, 'func', None, 'global', line, return_type=return_type))
+        
+        # Establecer función actual para validar returns
+        current_function = {
+            'name': func_name,
+            'return_type': return_type,
+            'line': line
+        }
+        
+        # Entrar al ámbito de la función
+        symbol_table.enter_scope()
+        
+        # Procesar parámetros (ya se insertan en p_parametro)
+        # El bloque se procesará automáticamente
+        
+        # Salir del ámbito de la función al final del bloque
+        # Esto se maneja en p_bloque
+
+def p_bloque(p):
+    '''bloque : LBRACE sentencias RBRACE
+              | LBRACE RBRACE'''
+    # Si estamos en una función, salir del ámbito al final del bloque
+    if current_function:
+        symbol_table.exit_scope()
+
+# ============================================================================
+# FIN CONTRIBUCIÓN: Jair Palaguachi - REGLA 2
+# ============================================================================
+
 
 # DECLARACIONES MÚLTIPLES Y ASIGNACIONES MÚLTIPLES
 def p_declaracion_var_multiple(p):
