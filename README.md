@@ -32,20 +32,20 @@ Verifica la coherencia lógica del código más allá de la sintaxis:
 **Reglas Implementadas** (12 reglas semánticas):
 
 **Jair Palaguachi** - Identificadores, Asignación, Funciones y Estructuras:
-1. ✅ Validación de declaración previa
-2. ✅ Validación de alcance de variables
-3. ✅ Verificación de tipos en asignación
-4. ✅ Inmutabilidad de constantes
-5. ✅ Tipo de retorno correcto en funciones
-6. ✅ Múltiples retornos respetando orden y tipo
+1. Validación de declaración previa
+2. Validación de alcance de variables
+3.  Verificación de tipos en asignación
+4.  Inmutabilidad de constantes
+5.  Tipo de retorno correcto en funciones
+6.  Múltiples retornos respetando orden y tipo
 
 **Javier Gutiérrez** - Operaciones, Conversión, Funciones y Estructuras:
-1. ✅ Homogeneidad de tipos en operaciones aritméticas
-2. ✅ Concatenación solo con strings
-3. ✅ Tipos convertibles en conversiones
-4. ✅ Advertencia de truncamiento en conversiones
-5. ✅ Condiciones booleanas en if/for
-6. ✅ Break y continue solo en bucles/switch
+1.  Homogeneidad de tipos en operaciones aritméticas
+2.  Concatenación solo con strings
+3.  Tipos convertibles en conversiones
+4.  Advertencia de truncamiento en conversiones
+5.  Condiciones booleanas en if/for
+6.  Break y continue solo en bucles/switch
 
 
 
@@ -91,7 +91,7 @@ python semantico_go.py mi_codigo.go
 
 ## Ejemplos de Detección de Errores
 
-### ❌ Error Semántico: Variable No Declarada
+###  Error Semántico: Variable No Declarada
 
 ```go
 // Código incorrecto
@@ -104,7 +104,7 @@ contador := 0
 Error semántico en línea 10: Variable 'contador' utilizada sin declaración previa
 ```
 
-### ❌ Error Semántico: Incompatibilidad de Tipos
+###  Error Semántico: Incompatibilidad de Tipos
 
 ```go
 // Código incorrecto
@@ -117,7 +117,7 @@ edad = 25.5  // Error: float64 no compatible con int
 Error semántico en línea 18: Incompatibilidad de tipos: no se puede asignar 'float64' a 'int'
 ```
 
-### ❌ Error Semántico: Modificar Constante
+###  Error Semántico: Modificar Constante
 
 ```go
 // Código incorrecto
@@ -130,7 +130,7 @@ PI = 3.14  // Error: constante inmutable
 Error semántico en línea 22: No se puede asignar valor a constante 'PI'
 ```
 
-### ✅ Código Correcto
+###  Código Correcto
 
 ```go
 package main
@@ -153,8 +153,8 @@ func main() {
 
 **Salida del analizador**:
 ```
-✓ Programa analizado correctamente
-✓ No se encontraron errores semánticos
+ Programa analizado correctamente
+ No se encontraron errores semánticos
 ```
 
 ## Estructura del Proyecto
@@ -162,29 +162,29 @@ func main() {
 ```
 Analizador_Sintactico_Go/
 │
-├── 📄 FASE 1: LÉXICO
+├──  FASE 1: LÉXICO
 │   └── lexico_go.py                  # Analizador léxico
 │
-├── 📄 FASE 2: SINTÁCTICO
+├──  FASE 2: SINTÁCTICO
 │   └── sintactico_go.py              # Analizador sintáctico
 │
-├── 📄 FASE 3: SEMÁNTICO 
+├──  FASE 3: SEMÁNTICO 
 │   └── semantico_go.py               # Analizador semántico
 │
-├── 🧪 PRUEBAS
+├──  PRUEBAS
 │   ├── algoritmo1.go                 # Variables y operadores
 │   ├── algoritmo2.go                 # Estructuras de control
 │   ├── algoritmo3.go                 # Estructuras de datos
 │
-├── 📊 LOGS
+├──  LOGS
 │   ├── logs/lexico-*.txt            # Logs léxicos
 │   ├── logs/sintactico-*.txt        # Logs sintácticos
 │   └── logs/semantico-*.txt         # Logs semánticos
 │
-├── 📖 DOCUMENTACIÓN
+├──  DOCUMENTACIÓN
 │   ── README.md                     # Este archivo
 │
-└── 🔧 AUXILIARES
+└──  AUXILIARES
     ├── parser.out                    # Tabla de parsing
     ├── parsetab.py                   # Cache del parser
     └── __pycache__/
@@ -199,7 +199,6 @@ Cada fase genera logs con formato estandarizado:
 
 Ejemplos:
 - lexico-JairPalaguachi-algoritmo1-15112025-19h46.txt
-- sintactico-leodamac-algoritmo2-15112025-19h42.txt
 - semantico-JairPalaguachi-algoritmo3-17112025-20h30.txt
 ```
 
@@ -211,11 +210,6 @@ Ejemplos:
 - **GitHub**: Repositorio y colaboración
 
 
-## Soporte y Contacto
-
-- **Repositorio**: [GitHub - Analizador_Sintactico_Go](https://github.com/usuario/Analizador_Sintactico_Go)
-- **Issues**: Reporta problemas en la sección de Issues del repositorio
-- **Documentación**: Consulta los archivos MD en el proyecto
 
 ## Referencias
 
