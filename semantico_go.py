@@ -655,6 +655,89 @@ def p_sentencias(p):
                   | sentencia'''
     pass
 
+# ===============================================================a=============
+# CONTRIBUCIÓN: Javier Gutiérrez (SKEIILATT)
+# ESTRUCTURAS DE CONTROL - REGLA 3: Validación de condiciones booleanas
+# Las condiciones en if, for y switch deben ser expresiones booleanas
+# ============================================================================
+
+def p_if_statement(p):
+    '''if_statement : IF condicion bloque
+                    | IF condicion bloque ELSE bloque
+                    | IF condicion bloque ELSE if_statement'''
+    pass
+
+def p_condicion(p):
+    '''condicion : expresion
+                 | declaracion_var_corta SEMICOLON expresion'''
+    
+    if len(p) == 2:  # Solo expresion
+        expr_type = p[1].get('type') if isinstance(p[1], dict) else 'unknown'
+        if expr_type != 'unknown' and expr_type != 'bool':
+            add_error(f"La condición debe ser de tipo 'bool', se encontró '{expr_type}'", p.lineno(1))
+        p[0] = p[1]
+    else:  # declaracion_var_corta ; expresion
+        # La declaración corta ya insertó la variable en la tabla de símbolos
+        expr_type = p[3].get('type') if isinstance(p[3], dict) else 'unknown'
+        if expr_type != 'unknown' and expr_type != 'bool':
+            add_error(f"La condición debe ser de tipo 'bool', se encontró '{expr_type}'", p.lineno(3))
+        p[0] = p[3]
+
+def p_declaracion_var_corta(p):
+    '''declaracion_var_corta : ID DECLARE_ASSIGN expresion
+                             | lista_ids DECLARE_ASSIGN expresion'''
+    pass
+
+def p_for_statement(p):
+    '''for_statement : FOR condicion bloque
+                     | FOR bloque
+                     | FOR inicializacion SEMICOLON condicion SEMICOLON incremento bloque
+                     | FOR ID COMMA ID DECLARE_ASSIGN RANGE expresion bloque
+                     | FOR ID DECLARE_ASSIGN RANGE expresion bloque
+                     | FOR ID COMMA ID ASSIGN RANGE expresion bloque
+                     | FOR UNDERSCORE COMMA ID DECLARE_ASSIGN RANGE expresion bloque
+                     | FOR ID COMMA UNDERSCORE DECLARE_ASSIGN RANGE expresion bloque
+                     | FOR UNDERSCORE COMMA UNDERSCORE DECLARE_ASSIGN RANGE expresion bloque'''
+    global inside_loop
+    
+    # Manejar range loops específicamente
+    if len(p) >= 8 and any(p[i] == 'range' for i in range(len(p))):
+        inside_loop += 1
+        symbol_table.enter_scope()
+        
+        # Encontrar la posición de 'range'
+        range_pos = None
+        for i in range(1, len(p)):
+            if p[i] == 'range':
+                range_pos = i
+                break
+        
+        if range_pos:
+            # Determinar cuántas variables hay antes del range
+            if range_pos == 6:  # FOR ID DECLARE_ASSIGN RANGE
+                var_name = p[2]
+                if var_name != '_':
+                    symbol_table.insert(Symbol(var_name, 'int', None, 'local', p.lineno(2)))
+            
+            elif range_pos == 8:  # FOR ID COMMA ID DECLARE_ASSIGN RANGE
+                var1_name = p[2]
+                var2_name = p[4]
+                if var1_name != '_':
+                    symbol_table.insert(Symbol(var1_name, 'int', None, 'local', p.lineno(2)))
+                if var2_name != '_':
+                    symbol_table.insert(Symbol(var2_name, 'int', None, 'local', p.lineno(4)))
+        
+        # El bloque se procesará con las nuevas variables en scope
+        inside_loop -= 1
+        symbol_table.exit_scope()
+    else:
+        inside_loop += 1
+        # Procesar bucle normal
+        inside_loop -= 1
+
+# ============================================================================
+# FIN CONTRIBUCIÓN: Jair Palaguachi (JairPalaguachi) - REGLA 3
+# ============================================================================
 
 
 
