@@ -63,6 +63,7 @@ class SymbolTable:
 symbol_table = SymbolTable()
 semantic_errors = []
 current_function = None
+function_stack = []  # Pila de funciones para manejar funciones anidadas
 inside_loop = 0  # Contador para detectar bucles anidados
 
 # Tipos compatibles para operaciones
@@ -137,8 +138,8 @@ precedence = (
 
 def p_programa(p):
     '''programa : package_decl imports declaraciones'''
-    print("✓ Programa analizado correctamente")
-    print(f"✓ Total de símbolos declarados: {sum(len(scope) for scope in symbol_table.scopes)}")
+    print("+ Programa analizado correctamente")
+    print(f"+ Total de simbolos declarados: {sum(len(scope) for scope in symbol_table.scopes)}")
 
 def p_package_decl(p):
     '''package_decl : PACKAGE ID'''
@@ -300,55 +301,43 @@ def p_declaracion_var(p):
 # Variables declaradas dentro de un bloque solo son accesibles dentro de ese bloque
 # ============================================================================
 
-def p_bloque(p):
-    '''bloque : LBRACE sentencias RBRACE
-              | LBRACE RBRACE'''
-    # Entrar y salir del ámbito para manejar el scope
-    symbol_table.enter_scope()
-    # Aquí se procesarían las sentencias
-    symbol_table.exit_scope()
-
 def p_funcion(p):
-    '''funcion : FUNC ID LPAREN parametros RPAREN tipo_retorno bloque
-               | FUNC ID LPAREN parametros RPAREN bloque'''
+    '''funcion : funcion_header bloque'''
+    global current_function
+    # Al terminar la función, salir del scope y limpiar el contexto
+    symbol_table.exit_scope()
+    current_function = None
+
+def p_funcion_header(p):
+    '''funcion_header : FUNC ID LPAREN parametros RPAREN tipo_retorno
+                      | FUNC ID LPAREN parametros RPAREN'''
     global current_function
     func_name = p[2]
     line = p.lineno(2)
-    
-    if symbol_table.lookup_current_scope(func_name):
-        add_error(f"Función '{func_name}' ya declarada", line)
-    else:
-        # LEONARDO - REGLA 1: Guardar tipo de retorno de la función
-        if len(p) == 8:  # Con tipo de retorno
-            return_type = p[6]
-        else:  # Sin tipo de retorno explícito (void)
-            return_type = 'void'
-        
-        # Insertar función con su tipo de retorno
+
+    # LEONARDO - REGLA 1: Guardar tipo de retorno de la función
+    if len(p) == 7:  # Con tipo de retorno
+        return_type = p[6]
+    else:  # Sin tipo de retorno explícito (void)
+        return_type = 'void'
+
+    # Insertar función con su tipo de retorno
+    if not symbol_table.lookup_current_scope(func_name):
         symbol_table.insert(Symbol(func_name, 'func', None, 'global', line, return_type=return_type))
-        
-        # Establecer función actual para validar returns
-        current_function = {
-            'name': func_name,
-            'return_type': return_type,
-            'line': line
-        }
-        
-        # Entrar al ámbito de la función
-        symbol_table.enter_scope()
-        
-        # Procesar parámetros (ya se insertan en p_parametro)
-        # El bloque se procesará automáticamente
-        
-        # Salir del ámbito de la función al final del bloque
-        # Esto se maneja en p_bloque
+
+    # Establecer función actual y entrar a un nuevo scope ANTES de procesar el bloque
+    current_function = {
+        'name': func_name,
+        'return_type': return_type,
+        'line': line
+    }
+    symbol_table.enter_scope()
 
 def p_bloque(p):
     '''bloque : LBRACE sentencias RBRACE
               | LBRACE RBRACE'''
-    # Si estamos en una función, salir del ámbito al final del bloque
-    if current_function:
-        symbol_table.exit_scope()
+    # El manejo del scope se hace en p_funcion
+    pass
 
 # ============================================================================
 # FIN CONTRIBUCIÓN: Jair Palaguachi - REGLA 2
@@ -369,11 +358,24 @@ def p_asignacion(p):
                   | ID DIVIDE_ASSIGN expresion
                   | ID LBRACKET expresion RBRACKET ASSIGN expresion
                   | TIMES ID ASSIGN expresion'''
-    
-    if len(p) == 4 and p[2] == '=':  # ID ASSIGN expresion
+
+    if len(p) == 4 and p[1] == '*':  # TIMES ID ASSIGN expresion (desreferenciación de puntero)
+        var_name = p[2]
+        line = p.lineno(2)
+
+        # Verificar que la variable (puntero) esté declarada
+        symbol = symbol_table.lookup(var_name)
+        if not symbol:
+            add_error(f"Variable '{var_name}' utilizada sin declaración previa", line)
+        else:
+            # Verificar que sea un puntero
+            if not symbol.symbol_type.startswith('*'):
+                add_error(f"No se puede desreferenciar '{var_name}' que no es un puntero", line)
+
+    elif len(p) == 4 and p[2] == '=':  # ID ASSIGN expresion
         var_name = p[1]
         line = p.lineno(1)
-        
+
         # JAIR - REGLA 1: Verificar que la variable esté declarada
         symbol = symbol_table.lookup(var_name)
         if not symbol:
@@ -384,15 +386,15 @@ def p_asignacion(p):
             if expr_type != 'unknown' and symbol.symbol_type != expr_type:
                 if not (symbol.symbol_type in NUMERIC_TYPES and expr_type in NUMERIC_TYPES):
                     add_error(f"Incompatibilidad de tipos: no se puede asignar '{expr_type}' a '{symbol.symbol_type}'", line)
-            
+
             # JAIR - REGLA 4: Verificar si es constante
             if symbol.is_const:
                 add_error(f"No se puede asignar valor a constante '{var_name}'", line)
-    
+
     elif len(p) == 4:  # Operadores compuestos
         var_name = p[1]
         line = p.lineno(1)
-        
+
         # JAIR - REGLA 1: Verificar declaración
         symbol = symbol_table.lookup(var_name)
         if not symbol:
@@ -546,11 +548,17 @@ def p_parametro(p):
                  | ID ELLIPSIS tipo
                  | TIMES ID
                  | UNDERSCORE tipo'''
-    if len(p) == 3 and p[1] != '_':  # ID tipo
+    if len(p) == 3 and p[1] != '_' and p[2] != '...':  # ID tipo
         param_name = p[1]
         param_type = p[2]
         line = p.lineno(1)
         # Insertar parámetro en el ámbito actual (de la función)
+        symbol_table.insert(Symbol(param_name, param_type, None, 'local', line))
+    elif len(p) == 4 and p[2] == '...':  # ID ELLIPSIS tipo (parámetro variádico)
+        param_name = p[1]
+        param_type = f'[]{p[3]}'  # Los parámetros variádicos son slices
+        line = p.lineno(1)
+        # Insertar parámetro variádico en el ámbito actual
         symbol_table.insert(Symbol(param_name, param_type, None, 'local', line))
 
 def p_tipo_retorno(p):
@@ -587,7 +595,8 @@ def p_return_statement(p):
     expected_type = current_function.get('return_type', 'void')
     
     if len(p) == 2:  # RETURN sin valor
-        if expected_type != 'void':
+        # En Go, los retornos nombrados permiten return vacío
+        if expected_type != 'void' and expected_type != 'multiple':
             add_error(f"Función '{current_function['name']}' debe retornar un valor de tipo '{expected_type}'", line)
     
     elif len(p) == 3 and p.slice[2].type != 'lista_expresiones':  # RETURN expresion
@@ -685,54 +694,55 @@ def p_condicion(p):
 def p_declaracion_var_corta(p):
     '''declaracion_var_corta : ID DECLARE_ASSIGN expresion
                              | lista_ids DECLARE_ASSIGN expresion'''
-    pass
+    # Insertar variables declaradas en el ámbito actual
+    if len(p) == 4 and isinstance(p[1], str):  # ID DECLARE_ASSIGN expresion
+        var_name = p[1]
+        line = p.lineno(1)
+        expr_info = p[3]
+        expr_type = expr_info.get('type') if isinstance(expr_info, dict) else 'unknown'
+
+        # No verificar si ya existe, ya que esto es una declaración corta válida
+        symbol_table.insert(Symbol(var_name, expr_type, None, 'local', line))
+    elif len(p) == 4:  # lista_ids DECLARE_ASSIGN expresion
+        var_names = p[1]
+        line = p.lineno(1)
+        for var_name in var_names:
+            if var_name != '_':
+                symbol_table.insert(Symbol(var_name, 'unknown', None, 'local', line))
 
 def p_for_statement(p):
     '''for_statement : FOR condicion bloque
                      | FOR bloque
                      | FOR inicializacion SEMICOLON condicion SEMICOLON incremento bloque
-                     | FOR ID COMMA ID DECLARE_ASSIGN RANGE expresion bloque
-                     | FOR ID DECLARE_ASSIGN RANGE expresion bloque
-                     | FOR ID COMMA ID ASSIGN RANGE expresion bloque
-                     | FOR UNDERSCORE COMMA ID DECLARE_ASSIGN RANGE expresion bloque
-                     | FOR ID COMMA UNDERSCORE DECLARE_ASSIGN RANGE expresion bloque
-                     | FOR UNDERSCORE COMMA UNDERSCORE DECLARE_ASSIGN RANGE expresion bloque'''
+                     | for_range_header bloque
+                     | FOR ID COMMA ID ASSIGN RANGE expresion bloque'''
     global inside_loop
-    
-    # Manejar range loops específicamente
-    if len(p) >= 8 and any(p[i] == 'range' for i in range(len(p))):
-        inside_loop += 1
-        symbol_table.enter_scope()
-        
-        # Encontrar la posición de 'range'
-        range_pos = None
-        for i in range(1, len(p)):
-            if p[i] == 'range':
-                range_pos = i
-                break
-        
-        if range_pos:
-            # Determinar cuántas variables hay antes del range
-            if range_pos == 6:  # FOR ID DECLARE_ASSIGN RANGE
-                var_name = p[2]
-                if var_name != '_':
-                    symbol_table.insert(Symbol(var_name, 'int', None, 'local', p.lineno(2)))
-            
-            elif range_pos == 8:  # FOR ID COMMA ID DECLARE_ASSIGN RANGE
-                var1_name = p[2]
-                var2_name = p[4]
-                if var1_name != '_':
-                    symbol_table.insert(Symbol(var1_name, 'int', None, 'local', p.lineno(2)))
-                if var2_name != '_':
-                    symbol_table.insert(Symbol(var2_name, 'int', None, 'local', p.lineno(4)))
-        
-        # El bloque se procesará con las nuevas variables en scope
-        inside_loop -= 1
-        symbol_table.exit_scope()
-    else:
-        inside_loop += 1
-        # Procesar bucle normal
-        inside_loop -= 1
+    inside_loop -= 1
+
+def p_for_range_header(p):
+    '''for_range_header : FOR ID COMMA ID DECLARE_ASSIGN RANGE expresion
+                        | FOR ID DECLARE_ASSIGN RANGE expresion
+                        | FOR UNDERSCORE COMMA ID DECLARE_ASSIGN RANGE expresion
+                        | FOR ID COMMA UNDERSCORE DECLARE_ASSIGN RANGE expresion
+                        | FOR UNDERSCORE COMMA UNDERSCORE DECLARE_ASSIGN RANGE expresion'''
+    global inside_loop
+    inside_loop += 1
+
+    # FOR ID DECLARE_ASSIGN RANGE expresion (len=6)
+    if len(p) == 6:
+        var_name = p[2]
+        if var_name != '_':
+            symbol_table.insert(Symbol(var_name, 'int', None, 'local', p.lineno(2)))
+
+    # FOR ID COMMA ID DECLARE_ASSIGN RANGE expresion (len=8)
+    elif len(p) == 8:
+        var1_name = p[2]
+        var2_name = p[4]
+
+        if var1_name != '_':
+            symbol_table.insert(Symbol(var1_name, 'int', None, 'local', p.lineno(2)))
+        if var2_name != '_':
+            symbol_table.insert(Symbol(var2_name, 'int', None, 'local', p.lineno(4)))
 
 # ============================================================================
 # FIN CONTRIBUCIÓN: Javier Gutiérrez (SKEIILATT)- REGLA 3
@@ -860,7 +870,11 @@ def p_expresion_binaria(p):
             p[0] = {'type': 'string'}
         else:
             # Operaciones aritméticas
-            if left_type != 'unknown' and right_type != 'unknown':
+            # Ignorar si uno de los tipos es un puntero (podría ser desreferenciación en asignación)
+            is_pointer_context = (left_type.startswith('*') if isinstance(left_type, str) else False) or \
+                                 (right_type.startswith('*') if isinstance(right_type, str) else False)
+
+            if not is_pointer_context and left_type != 'unknown' and right_type != 'unknown':
                 if left_type not in NUMERIC_TYPES or right_type not in NUMERIC_TYPES:
                     add_error(f"Operación aritmética '{operator}' requiere tipos numéricos. Se encontró '{left_type}' y '{right_type}'", p.lineno(2))
                 elif left_type != right_type:
@@ -994,7 +1008,9 @@ def p_expresion_make(p):
 def p_expresion_append(p):
     '''expresion : APPEND LPAREN expresion COMMA lista_expresiones RPAREN
                  | APPEND LPAREN expresion COMMA expresion RPAREN'''
-    p[0] = {'type': 'slice'}
+    # append retorna el mismo tipo de slice que recibe como primer argumento
+    slice_type = p[3].get('type') if isinstance(p[3], dict) else '[]int'
+    p[0] = {'type': slice_type}
 
 def p_expresion_len(p):
     '''expresion : LEN LPAREN expresion RPAREN'''
@@ -1119,7 +1135,7 @@ def analyze_file(filename):
         for error in semantic_errors:
             print(error)
     else:
-        print("\n✓ No se encontraron errores semánticos")
+        print("\n+ No se encontraron errores semanticos")
     
     # Mostrar tabla de símbolos
     print(f"\n{'='*80}")
@@ -1215,7 +1231,7 @@ def generate_log(source_filename):
         log_file.write("FIN DEL ANÁLISIS SEMÁNTICO\n")
         log_file.write("="*80 + "\n")
     
-    print(f"\n✓ Log generado exitosamente: {log_filename}")
+    print(f"\n+ Log generado exitosamente: {log_filename}")
 
 # ============================================================================
 # PUNTO DE ENTRADA

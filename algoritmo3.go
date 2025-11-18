@@ -1,5 +1,5 @@
 // Algoritmo 3 - Prueba de Estructuras de Datos y Funciones
-// Autor: Leonardo Macías (leodamac)
+// Autores: Jair Palaguachi - Javier Gutiérrez
 // Descripción: Este algoritmo prueba arreglos, slices, mapas y funciones en Go
 
 package main
